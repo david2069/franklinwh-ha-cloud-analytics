@@ -30,11 +30,11 @@
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
     el.innerHTML =
-      '<div class="fwhca-bar"><div class="fwhca-periods" role="tablist" aria-label="Period">' +
-      PERIODS.map((p) => '<button type="button" role="tab" data-p="' + p[0] + '">' + p[1] + "</button>").join("") +
-      '</div><div class="fwhca-nav"><button type="button" data-step="prev" aria-label="Previous period">‹</button>' +
+      '<div class="fwhca-bar"><select class="fwhca-period" aria-label="Period">' +
+      PERIODS.map((p) => '<option value="' + p[0] + '">' + p[1] + "</option>").join("") +
+      '</select><div class="fwhca-nav"><button type="button" data-step="prev" aria-label="Previous period">‹</button>' +
       '<input type="date" aria-label="Date"><button type="button" data-step="next" aria-label="Next period">›</button>' +
-      '<button type="button" data-refresh>Refresh</button></div></div>' +
+      '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div></div>' +
       '<p class="fwhca-status" aria-live="polite"></p><div class="fwhca-chart"></div>' +
       '<div class="fwhca-legend"></div><p class="fwhca-note"></p>';
     const $ = (s) => el.querySelector(s);
@@ -43,10 +43,11 @@
     el.addEventListener("click", (e) => {
       const b = e.target.closest("button");
       if (!b || st.busy) return;
-      if (b.dataset.p) { st.period = b.dataset.p; store.set(KEY, st.period); load(); }
-      else if (b.dataset.step && st.data && st.data.nav[b.dataset.step]) { st.date = st.data.nav[b.dataset.step]; load(); }
+      if (b.dataset.step && st.data && st.data.nav[b.dataset.step]) { st.date = st.data.nav[b.dataset.step]; load(); }
       else if ("refresh" in b.dataset) load(true);
     });
+    const periodIn = $(".fwhca-period");
+    periodIn.addEventListener("change", () => { st.period = periodIn.value; store.set(KEY, st.period); load(); });
     dateIn.addEventListener("change", () => { if (dateIn.value) { st.date = dateIn.value; load(); } });
 
     async function load(refresh) {
@@ -64,7 +65,8 @@
 
     function render() {
       const d = st.data;
-      el.querySelectorAll("[data-p]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.p === st.period)));
+      periodIn.value = st.period;
+      periodIn.disabled = st.busy;
       const life = st.period === "lifetime";
       $(".fwhca-nav").hidden = life;
       dateIn.value = st.date;

@@ -56,14 +56,14 @@ def _status(pg):
 
 
 def test_opens_on_day_5min_lines_in_kw(page):
-    assert page.locator("[data-p=day5]").get_attribute("aria-selected") == "true"
+    assert page.input_value(".fwhca-period") == "day5"
     assert page.locator(".fwhca-line").count() >= 3
     assert page.locator("svg text").first.text_content() == "kW"
     assert "Showing cloud data from the FranklinWH cloud" in _status(page)
 
 
 def test_periods_switch_to_kwh_bars_and_remember(page):
-    page.click("[data-p=month]")
+    page.select_option(".fwhca-period", "month")
     page.wait_for_selector(".fwhca-bar-r")
     assert page.locator("svg text").first.text_content() == "kWh"
     assert page.input_value("input[type=date]") == "2026-11-01"
@@ -72,22 +72,22 @@ def test_periods_switch_to_kwh_bars_and_remember(page):
     page.wait_for_function("document.querySelector('input[type=date]').value === '2026-10-01'")
     page.reload()
     page.wait_for_selector(".fwhca-bar-r")
-    assert page.locator("[data-p=month]").get_attribute("aria-selected") == "true"
+    assert page.input_value(".fwhca-period") == "month"
 
 
 def test_week_snaps_to_monday_and_lifetime_has_no_dates(page):
-    page.click("[data-p=week]")
+    page.select_option(".fwhca-period", "week")
     page.wait_for_function("document.querySelector('input[type=date]').value === '2026-11-09'")
     page.fill("input[type=date]", "2026-11-05")
     page.dispatch_event("input[type=date]", "change")
     page.wait_for_function("document.querySelector('input[type=date]').value === '2026-11-02'")
-    page.click("[data-p=lifetime]")
+    page.select_option(".fwhca-period", "lifetime")
     page.wait_for_selector(".fwhca-bar-r")
     assert page.locator(".fwhca-nav").is_hidden()
 
 
 def test_hourly_says_it_is_derived_and_future_day_is_empty(page):
-    page.click("[data-p=dayhour]")
+    page.select_option(".fwhca-period", "dayhour")
     page.wait_for_selector(".fwhca-bar-r")
     assert "5-minute" in page.locator(".fwhca-note").inner_text()
     assert "≈" in page.locator(".fwhca-legend").inner_text()
@@ -97,7 +97,7 @@ def test_hourly_says_it_is_derived_and_future_day_is_empty(page):
 
 
 def test_a_generator_that_never_ran_is_not_in_the_legend(page):
-    page.click("[data-p=year]")
+    page.select_option(".fwhca-period", "year")
     page.wait_for_selector(".fwhca-bar-r")
     assert "Generator" not in page.locator(".fwhca-legend").inner_text()
     assert page.locator(".fwhca-bar-r.c-generator").count() == 0
@@ -109,4 +109,15 @@ def test_phone_width_has_no_horizontal_scroll(browser, base):
     pg.goto(base + "/")
     pg.wait_for_selector(".fwhca-chart svg")
     assert pg.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    ctx.close()
+
+
+def test_period_is_one_dropdown_so_the_bar_is_one_line_on_a_phone(browser, base):
+    ctx = browser.new_context(viewport={"width": 375, "height": 740})
+    pg = ctx.new_page()
+    pg.goto(base + "/")
+    pg.wait_for_selector(".fwhca-chart svg")
+    assert pg.locator("select.fwhca-period option").count() == 6
+    period, nav = pg.locator(".fwhca-period").bounding_box(), pg.locator(".fwhca-nav").bounding_box()
+    assert abs(period["y"] - nav["y"]) < 4          # side by side, not stacked
     ctx.close()
