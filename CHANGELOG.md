@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1] — 2026-11-09
+
+### Changed
+- The PyPI workflow is `.github/workflows/release.yaml`, matching the trusted publisher
+  set up on PyPI. 0.1.0 was tagged but never reached PyPI; 0.1.1 is the same code.
+
 ## [0.1.0] — 2026-11-09
 
 ### Added
