@@ -2,9 +2,21 @@
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-11-09
+
+### Added
+- **Today** next to the date stepping: back to the period that holds today (on the host's
+  site calendar). Off while today's period is showing. The payload says so in `current`.
+- **Series chips:** the legend is a row of chips; tap one to hide or show that series. The
+  chart rescales to what is shown. Remembered in `fwh-cloud-analytics:hidden`.
+- **Line | Area** for Day (5-min): Area fills each line down to zero, gaps stay gaps.
+  Remembered in `fwh-cloud-analytics:area`.
+
 ### Changed
+- Refresh sits at the end of the status line, and the Line | Area and Stacked switches at
+  the end of the chips, so the period and date bar stays one line on a phone.
 - The PyPI workflow is `.github/workflows/publish.yml` again, like the other shared
-  packages. PyPI's trusted publisher must name `publish.yml` before the next tag.
+  packages.
 
 ## [0.1.1] — 2026-11-09
 

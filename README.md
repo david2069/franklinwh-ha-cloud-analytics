@@ -4,7 +4,10 @@ The FranklinWH cloud's energy reporting, shared by the FranklinWH bridges. It si
 a bridge's own (local) analytics behind a **Local / Cloud** switch: the same controls,
 two different sources, and the page always says which one it is showing.
 
-- **Periods:** Day (5-min), Day (hourly), Week, Month, Year, Lifetime, with a date picker.
+- **Periods:** Day (5-min), Day (hourly), Week, Month, Year, Lifetime, with a date picker,
+  ‹ › stepping and **Today**.
+- **Filters:** a chip per series to show or hide it; **Line | Area** for the day's lines;
+  stacked bars as an energy balance. All remembered in the browser.
 - **Chart:** home load, solar, battery (discharge +, charge −) and grid (import +,
   export −) in the site's time zone.
 - **Totals:** solar production (to home, battery, grid), battery flows (discharged by

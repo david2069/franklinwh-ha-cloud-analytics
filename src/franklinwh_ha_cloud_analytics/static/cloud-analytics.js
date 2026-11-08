@@ -14,6 +14,8 @@
                    ["month", "Month"], ["year", "Year"], ["lifetime", "Lifetime"]];
   const KEY = "fwh-cloud-analytics:period";
   const KEY_STACK = "fwh-cloud-analytics:stacked";   // "1": bars stacked, one column per bucket
+  const KEY_AREA = "fwh-cloud-analytics:area";         // "1": day lines filled down to zero
+  const KEY_HIDDEN = "fwh-cloud-analytics:hidden";     // JSON list of series keys switched off
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -28,7 +30,8 @@
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud" }, options || {});
     const st = { period: store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
-                 stacked: store.get(KEY_STACK) === "1" };
+                 stacked: store.get(KEY_STACK) === "1", area: store.get(KEY_AREA) === "1",
+                 hidden: (() => { try { const h = JSON.parse(store.get(KEY_HIDDEN) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } })() };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
     el.innerHTML =
@@ -36,11 +39,17 @@
       PERIODS.map((p) => '<option value="' + p[0] + '">' + p[1] + "</option>").join("") +
       '</select><div class="fwhca-nav"><button type="button" data-step="prev" aria-label="Previous period">‹</button>' +
       '<input type="date" aria-label="Date"><button type="button" data-step="next" aria-label="Next period">›</button>' +
+      '<button type="button" data-today title="Back to today">Today</button>' +
+      '</div></div>' +
+      '<div class="fwhca-statusbar"><p class="fwhca-status" aria-live="polite"></p>' +
+      '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div><div class="fwhca-chart"></div>' +
+      '<div class="fwhca-legendbar"><div class="fwhca-legend"></div><div class="fwhca-view">' +
+      '<div class="fwhca-seg" data-areas role="group" aria-label="Line or area">' +
+      '<button type="button" data-area="line" aria-pressed="true">Line</button>' +
+      '<button type="button" data-area="area" aria-pressed="false" title="Fill each line down to zero">Area</button></div>' +
       '<button type="button" data-stack aria-pressed="false" aria-label="Stacked bars" title="Stacked: where the energy came from above zero, where it went below">' +
       '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 2h4v5H3zM3 9h4v5H3zM9 5h4v3H9zM9 10h4v4H9z" fill="currentColor"/></svg></button>' +
-      '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div></div>' +
-      '<p class="fwhca-status" aria-live="polite"></p><div class="fwhca-chart"></div>' +
-      '<div class="fwhca-legend"></div><p class="fwhca-note"></p>';
+      '</div></div><p class="fwhca-note"></p>';
     const $ = (s) => el.querySelector(s);
     const dateIn = $("input[type=date]");
 
@@ -49,6 +58,13 @@
       if (!b || st.busy) return;
       if (b.dataset.step && st.data && st.data.nav[b.dataset.step]) { st.date = st.data.nav[b.dataset.step]; load(); }
       else if ("refresh" in b.dataset) load(true);
+      else if ("today" in b.dataset) { st.date = null; load(); }     // the host's today, on the site's calendar
+      else if (b.dataset.area) { st.area = b.dataset.area === "area"; store.set(KEY_AREA, st.area ? "1" : "0"); render(); }
+      else if (b.dataset.key) {
+        const k = b.dataset.key;
+        st.hidden = st.hidden.includes(k) ? st.hidden.filter((h) => h !== k) : st.hidden.concat(k);
+        store.set(KEY_HIDDEN, JSON.stringify(st.hidden)); render();
+      }
       else if ("stack" in b.dataset) { st.stacked = !st.stacked; store.set(KEY_STACK, st.stacked ? "1" : "0"); render(); }
     });
     const periodIn = $(".fwhca-period");
@@ -57,7 +73,7 @@
 
     async function load(refresh) {
       st.busy = true; render();
-      const q = new URLSearchParams(Object.assign({ period: st.period, date: st.date },
+      const q = new URLSearchParams(Object.assign({ period: st.period }, st.date ? { date: st.date } : {},
         refresh ? { refresh: "1" } : {}, typeof o.params === "function" ? o.params() : o.params || {}));
       try {
         const r = await fetch(o.endpoint + (o.endpoint.includes("?") ? "&" : "?") + q);
@@ -74,10 +90,14 @@
       periodIn.disabled = st.busy;
       const life = st.period === "lifetime";
       $(".fwhca-nav").hidden = life;
-      dateIn.value = st.date;
+      dateIn.value = st.date || "";
       dateIn.max = localToday();
       $("[data-step=prev]").disabled = !d || !!d.error || !d.nav || !d.nav.prev;
       $("[data-step=next]").disabled = !d || !!d.error || !d.nav || !d.nav.next;
+      $("[data-today]").disabled = !d || !!d.error || !!d.current;
+      $("[data-areas]").hidden = !d || !!d.error || d.chart !== "line";
+      $("[data-area=line]").setAttribute("aria-pressed", String(!st.area));
+      $("[data-area=area]").setAttribute("aria-pressed", String(st.area));
       const stackBtn = $("[data-stack]");
       stackBtn.hidden = !d || !!d.error || d.chart !== "bars";
       stackBtn.setAttribute("aria-pressed", String(st.stacked));
@@ -96,13 +116,19 @@
         .filter(Boolean).join(" ") : "";
     }
 
-    // Series with nothing but null or 0 (a site with no generator) are left out.
-    const shown = (d) => d.series.filter((s) => s.values.some((v) => v != null && v !== 0));
+    // Series with nothing but null or 0 (a site with no generator) are left out; the chips
+    // list the rest, and the chart draws the ones not switched off.
+    const present = (d) => d.series.filter((s) => s.values.some((v) => v != null && v !== 0));
+    const shown = (d) => present(d).filter((s) => !st.hidden.includes(s.key));
 
     function legend(d) {
-      return shown(d).map((s) => '<span class="fwhca-key"><i class="c-' + esc(s.key) + '"></i>' + esc(s.label) +
-        (s.evidence === "INFERRED" ? ' <abbr title="Inferred from the field name; never checked">(inferred)</abbr>' : "") +
-        (s.derived ? ' <abbr title="Added up from the cloud\'s 5-minute flows">≈</abbr>' : "") + "</span>").join("");
+      return present(d).map((s) => {
+        const on = !st.hidden.includes(s.key);
+        return '<button type="button" class="fwhca-key" data-key="' + esc(s.key) + '" aria-pressed="' + on + '" title="' + (on ? "Hide " : "Show ") + esc(s.label) + '">' +
+          '<i class="c-' + esc(s.key) + '"></i>' + esc(s.label) +
+          (s.evidence === "INFERRED" ? ' <abbr title="Inferred from the field name; never checked">(inferred)</abbr>' : "") +
+          (s.derived ? ' <abbr title="Added up from the cloud\'s 5-minute flows">≈</abbr>' : "") + "</button>";
+      }).join("");
     }
 
     function chart(d) {
@@ -136,6 +162,14 @@
         S.forEach((s) => {
           let path = "", pen = false;
           s.values.forEach((v, i) => { if (v == null) { pen = false; return; } path += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; });
+          if (st.area) {
+            // each unbroken run of samples, closed down to zero (a gap stays a gap)
+            let run = [];
+            const close = () => { if (run.length) g += '<path class="fwhca-area c-' + esc(s.key) + '" d="M' + run[0][0] + " " + y(0).toFixed(1) +
+              run.map((p) => "L" + p[0] + " " + p[1]).join("") + "L" + run[run.length - 1][0] + " " + y(0).toFixed(1) + 'Z"/>'; run = []; };
+            s.values.forEach((v, i) => { if (v == null) close(); else run.push([x(i).toFixed(1), y(v).toFixed(1)]); });
+            close();
+          }
           g += '<path class="fwhca-line c-' + esc(s.key) + '" d="' + path + '"><title>' + esc(s.label) + "</title></path>";
         });
         // one invisible column per sample, so hovering anywhere shows that time's values

@@ -148,3 +148,43 @@ def test_bars_can_be_stacked_and_the_choice_is_remembered(page):
     page.select_option(".fwhca-period", "day5")
     page.wait_for_selector(".fwhca-line")
     assert page.locator("[data-stack]").is_hidden()     # lines don't stack
+
+
+def test_today_jumps_back_to_the_current_period(page):
+    # Owner, 2026-11-09: a quick Today button.
+    today = page.locator("[data-today]")
+    assert today.is_disabled()                           # already on today
+    page.select_option(".fwhca-period", "month")
+    page.wait_for_selector(".fwhca-bar-r")
+    page.click("[data-step=prev]")
+    page.wait_for_function("document.querySelector('.fwhca-status').textContent.includes('2026-10-01')")
+    assert not today.is_disabled()
+    today.click()
+    page.wait_for_function("document.querySelector('.fwhca-status').textContent.includes('2026-11-01')")
+    assert today.is_disabled()
+
+
+def test_series_chips_show_and_hide_and_are_remembered(page):
+    # Owner, 2026-11-09: the same metric filter chips as the bridge's Local view.
+    chip = page.locator(".fwhca-key[data-key=solar]")
+    assert chip.get_attribute("aria-pressed") == "true"
+    assert page.locator(".fwhca-line.c-solar").count() == 1
+    chip.click()
+    assert chip.get_attribute("aria-pressed") == "false"
+    assert page.locator(".fwhca-line.c-solar").count() == 0
+    page.reload()
+    page.wait_for_selector(".fwhca-chart svg")
+    assert page.locator(".fwhca-key[data-key=solar]").get_attribute("aria-pressed") == "false"
+    assert page.locator(".fwhca-line.c-solar").count() == 0
+
+
+def test_day_lines_can_be_drawn_as_areas_and_bars_have_no_area_switch(page):
+    area, line = page.locator("[data-area=area]"), page.locator("[data-area=line]")
+    assert area.is_visible() and line.get_attribute("aria-pressed") == "true"
+    assert page.locator(".fwhca-area").count() == 0
+    area.click()
+    assert area.get_attribute("aria-pressed") == "true" and line.get_attribute("aria-pressed") == "false"
+    assert page.locator(".fwhca-area").count() >= 3
+    page.select_option(".fwhca-period", "month")
+    page.wait_for_selector(".fwhca-bar-r")
+    assert area.is_hidden()
