@@ -5,13 +5,15 @@
   --ca-home: #5b8def; --ca-solar: #e8b100; --ca-generator: #9b6bd6;
   --ca-battery: #2fae6b; --ca-battery_discharge: #2fae6b; --ca-battery_charge: #7fd1a3;
   --ca-grid: #8a94a3; --ca-grid_import: #d1453b; --ca-grid_export: #8a94a3; }
-.fwhca-bar{ display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
-.fwhca-periods, .fwhca-nav{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.fwhca button, .fwhca input{ font: inherit; font-size: .82rem; color: inherit; background: transparent; border: 1px solid var(--ca-line); border-radius: 8px; padding: 5px 10px; min-height: 34px; }
+.fwhca-bar{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.fwhca-nav{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fwhca button, .fwhca input, .fwhca select{ font: inherit; font-size: .82rem; color: inherit; background: transparent; border: 1px solid var(--ca-line); border-radius: 8px; padding: 5px 10px; min-height: 34px; }
 .fwhca button{ cursor: pointer; }
 .fwhca button:disabled{ opacity: .4; cursor: default; }
 .fwhca button[aria-selected="true"]{ border-color: var(--ca-accent); color: var(--ca-accent); }
-.fwhca button:focus-visible, .fwhca input:focus-visible{ outline: 2px solid var(--ca-accent); outline-offset: 2px; }
+.fwhca select{ background: transparent; cursor: pointer; padding: 4px 6px; }
+.fwhca select option{ color: initial; }
+.fwhca button:focus-visible, .fwhca input:focus-visible, .fwhca select:focus-visible{ outline: 2px solid var(--ca-accent); outline-offset: 2px; }
 .fwhca-status{ margin: 10px 0 4px; font-size: .82rem; color: var(--ca-muted); }
 .fwhca-status.fwhca-err{ color: var(--ca-crit); }
 .fwhca-chart svg{ width: 100%; height: auto; display: block; }
@@ -31,5 +33,8 @@
 .c-grid{ --c: var(--ca-grid); } .c-grid_import{ --c: var(--ca-grid_import); } .c-grid_export{ --c: var(--ca-grid_export); }
 .fwhca-line[class*="c-"]{ stroke: var(--c); }
 .fwhca-bar-r[class*="c-"], .fwhca-key i[class*="c-"]{ fill: var(--c); background: var(--c); }
-@media (max-width: 520px){ .fwhca-bar{ flex-direction: column; align-items: stretch; } .fwhca-periods button{ flex: 1 1 30%; } }
+
 .fwhca [hidden]{ display: none !important; }
+.fwhca-nav{ gap: 4px; }
+.fwhca-nav button{ min-width: 32px; padding: 4px 6px; }
+.fwhca input[type=date]{ padding: 4px 6px; height: 34px; box-sizing: border-box; }
