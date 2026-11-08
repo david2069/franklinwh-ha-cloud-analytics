@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "franklinwh-ha-cloud-analytics"
+version = "0.1.0"
+description = "The FranklinWH cloud's energy reporting (periods, chart payload, page panel) shared by the FranklinWH bridges"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "david2069"}]
+dependencies = ["franklinwh-cloud>=0.6.5"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[project.urls]
+Source = "https://github.com/david2069/franklinwh-ha-cloud-analytics"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+franklinwh_ha_cloud_analytics = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
