@@ -87,6 +87,7 @@ def build(period: Period, result: dict | None) -> dict:
     out = {"source": "cloud", "period": period.name, "date": period.start.isoformat(),
            "nav": {"prev": period.prev and period.prev.isoformat(),
                    "next": period.next and period.next.isoformat()},
+           "current": period.current,
            "note": None}
     if period.name == "day5":
         series = [_series(k, [_combine(result, parts, i) for i in range(len(labels))],
