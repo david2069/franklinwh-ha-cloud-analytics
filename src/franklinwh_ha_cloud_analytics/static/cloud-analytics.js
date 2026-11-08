@@ -108,7 +108,7 @@
       if (st.busy) status.textContent = "Loading from " + o.sourceLabel + "…";
       else if (!d) status.textContent = "";
       else if (d.error) status.textContent = d.error;
-      else status.textContent = "Showing cloud data from " + o.sourceLabel + (life ? "" : " · " + d.date) +
+      else status.textContent = "Showing cloud data from " + o.sourceLabel + (life ? "" : " · " + dateText(d.date, FULL)) +
         (d.fetched_at ? " · read " + new Date(d.fetched_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "");
       const ok = d && !d.error && !st.busy;
       $(".fwhca-chart").innerHTML = ok ? (d.empty ? '<p class="fwhca-empty">No cloud data for this period.</p>' : chart(d)) : "";
@@ -220,7 +220,7 @@
       if (i < 0 || i >= geo.n) { hideTip(); return; }
       const gx = (geo.L + geo.cw * (i + 0.5)).toFixed(1), guide = svg.querySelector(".fwhca-guide");
       guide.setAttribute("x1", gx); guide.setAttribute("x2", gx);
-      tip.innerHTML = '<b>' + esc(d.labels[i]) + "</b>" + shown(d).map((s) => '<span><i class="c-' + esc(s.key) + '"></i>' +
+      tip.innerHTML = '<b>' + esc(long(d.labels[i], d)) + "</b>" + shown(d).map((s) => '<span><i class="c-' + esc(s.key) + '"></i>' +
         esc(s.label) + ": " + esc(fmt(s.values[i], d.unit)) + "</span>").join("");
       tip.hidden = false;
       const pr = plot.getBoundingClientRect(), px = ev.clientX - pr.left, w = tip.offsetWidth;
@@ -242,10 +242,31 @@
   }
 
   function nice(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const m = x / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
+  // Dates in the viewer's own format (5 Jan, Jan 5, …) from the browser's locale. A label is
+  // a day on the site's calendar, so it is formatted as UTC: no shift into this browser's zone.
+  function dateText(t, opts) {
+    const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(t));
+    if (!m) return String(t);
+    return new Intl.DateTimeFormat(undefined, Object.assign({ timeZone: "UTC" }, opts))
+      .format(new Date(Date.UTC(+m[1], +m[2] - 1, +(m[3] || 1))));
+  }
+  const DAY = { day: "numeric", month: "short" }, FULL = { day: "numeric", month: "short", year: "numeric" };
+  // the axis: times stay 24-hour, as the site's own clock
   function short(t, period) {
     t = String(t);
     if (period === "day5") return t.split(" ").pop().slice(0, 5);
-    if (period === "week" || period === "month") return t.slice(5);
+    if (period === "week" || period === "month") return dateText(t, DAY);
+    if (period === "year") return dateText(t, { month: "short" });
+    return t;
+  }
+  // the readout's heading: the whole date
+  function long(t, d) {
+    t = String(t);
+    const wd = Object.assign({ weekday: "short" }, FULL);
+    if (d.period === "day5") { const p = t.split(" "); return p.length > 1 ? dateText(p[0], wd) + " " + p[1].slice(0, 5) : t; }
+    if (d.period === "dayhour") return dateText(d.date, wd) + " " + t;
+    if (d.period === "week" || d.period === "month") return dateText(t, wd);
+    if (d.period === "year") return dateText(t, { month: "long", year: "numeric" });
     return t;
   }
 

@@ -159,10 +159,10 @@ def test_today_jumps_back_to_the_current_period(page):
     page.select_option(".fwhca-period", "month")
     page.wait_for_selector(".fwhca-bar-r")
     page.click("[data-step=prev]")
-    page.wait_for_function("document.querySelector('.fwhca-status').textContent.includes('2026-10-01')")
+    page.wait_for_function("document.querySelector('input[type=date]').value === '2026-10-01' && !document.querySelector('.fwhca-status').textContent.includes('Loading')")
     assert not today.is_disabled()
     today.click()
-    page.wait_for_function("document.querySelector('.fwhca-status').textContent.includes('2026-11-01')")
+    page.wait_for_function("document.querySelector('input[type=date]').value === '2026-11-01' && !document.querySelector('.fwhca-status').textContent.includes('Loading')")
     assert today.is_disabled()
 
 
@@ -211,3 +211,19 @@ def test_tapping_the_chart_shows_every_value_at_that_time(page):
     page.click(".fwhca-key[data-key=solar]")                        # hidden series leave the readout
     page.mouse.move(box["x"] + box["width"] / 2 + 3, box["y"] + box["height"] / 2)
     assert "Solar" not in tip.inner_text()
+
+
+@pytest.mark.parametrize("locale,axis,status", [("en-AU", "1 Nov", "1 Nov 2026"), ("en-US", "Nov 1", "Nov 1, 2026")])
+def test_dates_follow_the_browsers_own_format(browser, base, locale, axis, status):
+    # Owner, 2026-11-09: no US mm-dd on an AU browser; dates come from the browser's locale.
+    ctx = browser.new_context(locale=locale, viewport={"width": 1100, "height": 800})
+    pg = ctx.new_page()
+    pg.goto(base + "/")
+    pg.wait_for_selector(".fwhca-chart svg")
+    pg.select_option(".fwhca-period", "month")
+    pg.wait_for_function("document.querySelector('.fwhca-status').textContent.includes('read') || document.querySelector('.fwhca-status').textContent.includes('cloud')")
+    pg.wait_for_selector(".fwhca-bar-r")
+    ticks = pg.locator("svg text.fwhca-ax").all_text_contents()
+    assert axis in ticks and not any(t.startswith("11-") for t in ticks)
+    assert status in pg.locator(".fwhca-status").inner_text()
+    ctx.close()
