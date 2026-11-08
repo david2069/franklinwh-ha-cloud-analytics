@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- The PyPI workflow is `.github/workflows/publish.yml` again, like the other shared
+  packages. PyPI's trusted publisher must name `publish.yml` before the next tag.
+
 ## [0.1.1] — 2026-11-09
 
 ### Changed
