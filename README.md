@@ -6,8 +6,9 @@ two different sources, and the page always says which one it is showing.
 
 - **Periods:** Day (5-min), Day (hourly), Week, Month, Year, Lifetime, with a date picker,
   ‹ › stepping and **Today**.
-- **Filters:** a chip per series to show or hide it; **Line | Area** for the day's lines;
+- **Filters:** a chip per series to show or hide it; **Line | Area | Bars** for any period;
   stacked bars as an energy balance. All remembered in the browser.
+- **Readout:** hover or tap the chart for every value at that time.
 - **Chart:** home load, solar, battery (discharge +, charge −) and grid (import +,
   export −) in the site's time zone.
 - **Totals:** solar production (to home, battery, grid), battery flows (discharged by

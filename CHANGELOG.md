@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-11-09
+
+### Added
+- **Readout:** hover, or tap on a phone, anywhere on the chart for every shown series'
+  value at that time, with a guide line, as the bridges' own Analytics does. It replaces
+  the per-bar and per-column hover titles.
+- **Line | Area | Bars** for every period (it replaces 0.1.2's Line | Area on Day only).
+  Until one is picked, a day draws lines and the longer periods bars; the pick is
+  remembered in `fwh-cloud-analytics:style`. Stacked is offered with Bars.
+
 ## [0.1.2] — 2026-11-09
 
 ### Added
