@@ -14,7 +14,8 @@
                    ["month", "Month"], ["year", "Year"], ["lifetime", "Lifetime"]];
   const KEY = "fwh-cloud-analytics:period";
   const KEY_STACK = "fwh-cloud-analytics:stacked";   // "1": bars stacked, one column per bucket
-  const KEY_AREA = "fwh-cloud-analytics:area";         // "1": day lines filled down to zero
+  const KEY_STYLE = "fwh-cloud-analytics:style";       // "line" | "area" | "bars"; unset: lines for a day, bars otherwise
+  const STYLES = ["line", "area", "bars"];
   const KEY_HIDDEN = "fwh-cloud-analytics:hidden";     // JSON list of series keys switched off
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const store = {
@@ -30,7 +31,7 @@
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud" }, options || {});
     const st = { period: store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
-                 stacked: store.get(KEY_STACK) === "1", area: store.get(KEY_AREA) === "1",
+                 stacked: store.get(KEY_STACK) === "1", style: STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null,
                  hidden: (() => { try { const h = JSON.parse(store.get(KEY_HIDDEN) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } })() };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
@@ -42,11 +43,12 @@
       '<button type="button" data-today title="Back to today">Today</button>' +
       '</div></div>' +
       '<div class="fwhca-statusbar"><p class="fwhca-status" aria-live="polite"></p>' +
-      '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div><div class="fwhca-chart"></div>' +
+      '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div><div class="fwhca-plot"><div class="fwhca-chart"></div><div class="fwhca-tip" hidden></div></div>' +
       '<div class="fwhca-legendbar"><div class="fwhca-legend"></div><div class="fwhca-view">' +
-      '<div class="fwhca-seg" data-areas role="group" aria-label="Line or area">' +
-      '<button type="button" data-area="line" aria-pressed="true">Line</button>' +
-      '<button type="button" data-area="area" aria-pressed="false" title="Fill each line down to zero">Area</button></div>' +
+      '<div class="fwhca-seg" role="group" aria-label="Chart style">' +
+      '<button type="button" data-style="line" aria-pressed="false">Line</button>' +
+      '<button type="button" data-style="area" aria-pressed="false" title="Fill each line down to zero">Area</button>' +
+      '<button type="button" data-style="bars" aria-pressed="false">Bars</button></div>' +
       '<button type="button" data-stack aria-pressed="false" aria-label="Stacked bars" title="Stacked: where the energy came from above zero, where it went below">' +
       '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 2h4v5H3zM3 9h4v5H3zM9 5h4v3H9zM9 10h4v4H9z" fill="currentColor"/></svg></button>' +
       '</div></div><p class="fwhca-note"></p>';
@@ -59,7 +61,7 @@
       if (b.dataset.step && st.data && st.data.nav[b.dataset.step]) { st.date = st.data.nav[b.dataset.step]; load(); }
       else if ("refresh" in b.dataset) load(true);
       else if ("today" in b.dataset) { st.date = null; load(); }     // the host's today, on the site's calendar
-      else if (b.dataset.area) { st.area = b.dataset.area === "area"; store.set(KEY_AREA, st.area ? "1" : "0"); render(); }
+      else if (b.dataset.style) { st.style = b.dataset.style; store.set(KEY_STYLE, st.style); render(); }
       else if (b.dataset.key) {
         const k = b.dataset.key;
         st.hidden = st.hidden.includes(k) ? st.hidden.filter((h) => h !== k) : st.hidden.concat(k);
@@ -95,11 +97,11 @@
       $("[data-step=prev]").disabled = !d || !!d.error || !d.nav || !d.nav.prev;
       $("[data-step=next]").disabled = !d || !!d.error || !d.nav || !d.nav.next;
       $("[data-today]").disabled = !d || !!d.error || !!d.current;
-      $("[data-areas]").hidden = !d || !!d.error || d.chart !== "line";
-      $("[data-area=line]").setAttribute("aria-pressed", String(!st.area));
-      $("[data-area=area]").setAttribute("aria-pressed", String(st.area));
+      const sty = d && !d.error ? style(d) : null;
+      $(".fwhca-seg").hidden = !sty;
+      STYLES.forEach((k) => $("[data-style=" + k + "]").setAttribute("aria-pressed", String(sty === k)));
       const stackBtn = $("[data-stack]");
-      stackBtn.hidden = !d || !!d.error || d.chart !== "bars";
+      stackBtn.hidden = sty !== "bars";
       stackBtn.setAttribute("aria-pressed", String(st.stacked));
       const status = $(".fwhca-status");
       status.classList.toggle("fwhca-err", !!(d && d.error));
@@ -111,7 +113,8 @@
       const ok = d && !d.error && !st.busy;
       $(".fwhca-chart").innerHTML = ok ? (d.empty ? '<p class="fwhca-empty">No cloud data for this period.</p>' : chart(d)) : "";
       $(".fwhca-legend").innerHTML = ok && !d.empty ? legend(d) : "";
-      $(".fwhca-note").textContent = ok ? [d.note, st.stacked && d.chart === "bars" && !d.empty
+      hideTip();
+      $(".fwhca-note").textContent = ok ? [d.note, st.stacked && sty === "bars" && !d.empty
         ? "Stacked: where the energy came from above zero (solar, battery, grid import), where it went below (home, battery charge, grid export)." : null]
         .filter(Boolean).join(" ") : "";
     }
@@ -135,7 +138,7 @@
       // drawn at the panel's own width, so axis text stays readable on a phone
       const S = shown(d), n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
             H = W < 520 ? 220 : 260, L = 44, R = 8, T = 24, B = 28;
-      const stack = st.stacked && d.chart === "bars";
+      const sty = style(d), stack = st.stacked && sty === "bars";
       // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
       // it is drawn below (its tooltip keeps the real value).
       const drawn = (s, v) => (stack && s.key === "home" && v != null ? -v : v);
@@ -158,11 +161,12 @@
       }
       const every = Math.ceil(n / (W < 520 ? 4 : 8));
       d.labels.forEach((t, i) => { if (i % every === 0) g += '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(short(t, d.period)) + "</text>"; });
-      if (d.chart === "line") {
+      geo = { W, L, cw: (W - L - R) / Math.max(n, 1), T, H: H - B, n };
+      if (sty !== "bars") {
         S.forEach((s) => {
           let path = "", pen = false;
           s.values.forEach((v, i) => { if (v == null) { pen = false; return; } path += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; });
-          if (st.area) {
+          if (sty === "area") {
             // each unbroken run of samples, closed down to zero (a gap stays a gap)
             let run = [];
             const close = () => { if (run.length) g += '<path class="fwhca-area c-' + esc(s.key) + '" d="M' + run[0][0] + " " + y(0).toFixed(1) +
@@ -172,9 +176,6 @@
           }
           g += '<path class="fwhca-line c-' + esc(s.key) + '" d="' + path + '"><title>' + esc(s.label) + "</title></path>";
         });
-        // one invisible column per sample, so hovering anywhere shows that time's values
-        d.labels.forEach((t, i) => { g += '<rect class="fwhca-hit" x="' + (x(i) - cw / 2) + '" y="' + T + '" width="' + cw + '" height="' + (H - T - B) + '"><title>' +
-          esc(t + "\n" + S.map((s) => s.label + ": " + fmt(s.values[i], d.unit)).join("\n")) + "</title></rect>"; });
       } else if (stack) {
         const bw = Math.max(1, cw * 0.7);
         d.labels.forEach((t, i) => {
@@ -186,7 +187,7 @@
             if (v > 0) up = to; else down = to;
             g += '<rect class="fwhca-bar-r c-' + esc(s.key) + '" x="' + (x(i) - bw / 2).toFixed(1) + '" width="' + bw.toFixed(1) +
                  '" y="' + Math.min(y(from), y(to)).toFixed(1) + '" height="' + Math.max(0.5, Math.abs(y(to) - y(from))).toFixed(1) +
-                 '"><title>' + esc(t + " · " + s.label + ": " + fmt(real, d.unit)) + "</title></rect>";
+                 '"/>';
           });
         });
       } else {
@@ -195,12 +196,40 @@
           if (v == null) return;
           const bx = x(i) - cw * 0.4 + k * bw;
           g += '<rect class="fwhca-bar-r c-' + esc(s.key) + '" x="' + bx.toFixed(1) + '" width="' + bw.toFixed(1) + '" y="' + Math.min(y(v), y(0)).toFixed(1) +
-               '" height="' + Math.max(0.5, Math.abs(y(v) - y(0))).toFixed(1) + '"><title>' + esc(d.labels[i] + " · " + s.label + ": " + fmt(v, d.unit)) + "</title></rect>";
+               '" height="' + Math.max(0.5, Math.abs(y(v) - y(0))).toFixed(1) + '"/>';
         }));
       }
       return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Cloud energy chart in ' + esc(d.unit) + '">' +
-             '<text class="fwhca-ax" x="4" y="12">' + esc(d.unit) + "</text>" + g + "</svg>";
+             '<text class="fwhca-ax" x="4" y="12">' + esc(d.unit) + "</text>" + g +
+             '<line class="fwhca-guide" y1="' + T + '" y2="' + (H - B) + '" x1="-9" x2="-9"/></svg>';
     }
+
+    // Lines for a day, bars for longer periods, until the viewer picks one.
+    function style(d) { return st.style || (d.chart === "line" ? "line" : "bars"); }
+
+    // The readout: hover (or tap, on a phone) anywhere on the chart for every shown value
+    // at that time, as the bridge's own Analytics does.
+    let geo = null;
+    const plot = $(".fwhca-plot"), tip = $(".fwhca-tip");
+    function hideTip() { tip.hidden = true; const g = plot.querySelector(".fwhca-guide"); if (g) g.setAttribute("x1", -9), g.setAttribute("x2", -9); }
+    function showTip(ev) {
+      const d = st.data, svg = plot.querySelector("svg");
+      if (!geo || !svg || !d || d.error || d.empty) return;
+      const r = svg.getBoundingClientRect(), k = geo.W / r.width;
+      const i = Math.floor(((ev.clientX - r.left) * k - geo.L) / geo.cw);
+      if (i < 0 || i >= geo.n) { hideTip(); return; }
+      const gx = (geo.L + geo.cw * (i + 0.5)).toFixed(1), guide = svg.querySelector(".fwhca-guide");
+      guide.setAttribute("x1", gx); guide.setAttribute("x2", gx);
+      tip.innerHTML = '<b>' + esc(d.labels[i]) + "</b>" + shown(d).map((s) => '<span><i class="c-' + esc(s.key) + '"></i>' +
+        esc(s.label) + ": " + esc(fmt(s.values[i], d.unit)) + "</span>").join("");
+      tip.hidden = false;
+      const pr = plot.getBoundingClientRect(), px = ev.clientX - pr.left, w = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(pr.width - w, px + (px > pr.width / 2 ? -w - 12 : 12))) + "px";
+      tip.style.top = Math.max(0, ev.clientY - pr.top - tip.offsetHeight / 2) + "px";
+    }
+    plot.addEventListener("pointermove", showTip);
+    plot.addEventListener("pointerdown", showTip);
+    plot.addEventListener("pointerleave", (ev) => { if (ev.pointerType === "mouse") hideTip(); });
 
     // redraw at the new width when the panel is resized (rotation, sidebar)
     let lastW = 0;

@@ -140,7 +140,9 @@ def test_bars_can_be_stacked_and_the_choice_is_remembered(page):
     zero = page.evaluate("+document.querySelector('.fwhca-grid.zero').getAttribute('y1')")
     home = page.locator(".fwhca-bar-r.c-home").first
     assert float(home.get_attribute("y")) >= zero - 0.5   # home load is a use: below zero
-    assert "Home load: -" not in home.locator("title").text_content()   # the real value
+    hb = home.bounding_box()
+    page.mouse.move(hb["x"] + hb["width"] / 2, hb["y"] + hb["height"] / 2)
+    assert "Home load: -" not in page.locator(".fwhca-tip").inner_text()   # the real value
     page.reload()
     page.wait_for_selector(".fwhca-bar-r")
     assert page.locator("[data-stack]").get_attribute("aria-pressed") == "true"
@@ -178,13 +180,34 @@ def test_series_chips_show_and_hide_and_are_remembered(page):
     assert page.locator(".fwhca-line.c-solar").count() == 0
 
 
-def test_day_lines_can_be_drawn_as_areas_and_bars_have_no_area_switch(page):
-    area, line = page.locator("[data-area=area]"), page.locator("[data-area=line]")
-    assert area.is_visible() and line.get_attribute("aria-pressed") == "true"
-    assert page.locator(".fwhca-area").count() == 0
+def test_every_period_can_be_bars_line_or_area_and_the_choice_is_remembered(page):
+    # Owner, 2026-11-09: switch back to line and area from the bar charts.
+    line, area, bars = (page.locator(f"[data-style={k}]") for k in ("line", "area", "bars"))
+    assert line.get_attribute("aria-pressed") == "true"            # day: lines by default
     area.click()
-    assert area.get_attribute("aria-pressed") == "true" and line.get_attribute("aria-pressed") == "false"
     assert page.locator(".fwhca-area").count() >= 3
     page.select_option(".fwhca-period", "month")
-    page.wait_for_selector(".fwhca-bar-r")
-    assert area.is_hidden()
+    page.wait_for_selector(".fwhca-chart svg")
+    assert page.locator(".fwhca-area").count() >= 3                 # the choice carries over
+    bars.click()
+    assert page.locator(".fwhca-bar-r").count() > 0 and page.locator(".fwhca-line").count() == 0
+    line.click()
+    assert page.locator(".fwhca-line").count() >= 3 and page.locator(".fwhca-bar-r").count() == 0
+    assert page.locator("[data-stack]").is_hidden()                 # stacking is for bars
+    page.reload()
+    page.wait_for_selector(".fwhca-line")
+    assert page.locator("[data-style=line]").get_attribute("aria-pressed") == "true"
+
+
+def test_tapping_the_chart_shows_every_value_at_that_time(page):
+    # Owner, 2026-11-09: like Local, the breakdown at the point tapped or hovered.
+    box = page.locator(".fwhca-chart svg").bounding_box()
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    tip = page.locator(".fwhca-tip")
+    tip.wait_for(state="visible")
+    text = tip.inner_text()
+    assert "Home load" in text and "Solar" in text and "kW" in text
+    assert page.locator(".fwhca-guide").count() == 1
+    page.click(".fwhca-key[data-key=solar]")                        # hidden series leave the readout
+    page.mouse.move(box["x"] + box["width"] / 2 + 3, box["y"] + box["height"] / 2)
+    assert "Solar" not in tip.inner_text()
