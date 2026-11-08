@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-11-09
+
+### Fixed
+- **Dates follow the browser's own format.** The axis showed ISO slices (`11-05`, read as
+  month-day); it now shows `5 Nov` on an Australian browser and `Nov 5` on an American
+  one, from the browser's locale. The status line and the readout's heading use it too
+  (the readout with the weekday). Times stay 24-hour.
+
 ## [0.1.3] — 2026-11-09
 
 ### Added
