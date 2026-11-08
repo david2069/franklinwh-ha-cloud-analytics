@@ -10,7 +10,7 @@
 .fwhca button, .fwhca input, .fwhca select{ font: inherit; font-size: .82rem; color: inherit; background: transparent; border: 1px solid var(--ca-line); border-radius: 8px; padding: 5px 10px; min-height: 34px; }
 .fwhca button{ cursor: pointer; }
 .fwhca button:disabled{ opacity: .4; cursor: default; }
-.fwhca button[aria-selected="true"]{ border-color: var(--ca-accent); color: var(--ca-accent); }
+.fwhca button[aria-pressed="true"]{ border-color: var(--ca-accent); color: var(--ca-accent); }
 .fwhca select{ background: transparent; cursor: pointer; padding: 4px 6px; }
 .fwhca select option{ color: initial; }
 .fwhca button:focus-visible, .fwhca input:focus-visible, .fwhca select:focus-visible{ outline: 2px solid var(--ca-accent); outline-offset: 2px; }

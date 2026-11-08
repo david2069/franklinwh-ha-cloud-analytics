@@ -7,4 +7,5 @@
   Month, Year, Lifetime) with the site calendar's previous and next period; `build()` chart
   payload with signs, nulls and evidence ratings; `fetch()` making the one franklinwh-cloud
   call a period needs, with `Cache`; and the `FWHCloudAnalytics.mount()` panel (period
-  dropdown, date stepping, chart, legend; one line on a phone). `demo` serves it over made-up data.
+  dropdown, date stepping, chart, legend; one line on a phone; an optional **stacked** toggle
+  for the bar charts (where the energy came from above zero, where it went below), remembered). `demo` serves it over made-up data.

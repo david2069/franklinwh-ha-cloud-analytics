@@ -121,3 +121,30 @@ def test_period_is_one_dropdown_so_the_bar_is_one_line_on_a_phone(browser, base)
     period, nav = pg.locator(".fwhca-period").bounding_box(), pg.locator(".fwhca-nav").bounding_box()
     assert abs(period["y"] - nav["y"]) < 4          # side by side, not stacked
     ctx.close()
+
+
+def test_bars_can_be_stacked_and_the_choice_is_remembered(page):
+    page.select_option(".fwhca-period", "week")
+    page.wait_for_selector(".fwhca-bar-r")
+    page.click("[data-step=prev]")                       # a whole week of data
+    page.wait_for_function("document.querySelector('input[type=date]').value === '2026-11-02'")
+    page.wait_for_selector(".fwhca-bar-r")
+    btn = page.locator("[data-stack]")
+    assert btn.is_visible() and btn.get_attribute("aria-pressed") == "false"
+    xs = lambda: {round(float(r.get_attribute("x"))) for r in page.locator(".fwhca-bar-r").all()}
+    side_by_side = len(xs())
+    btn.click()
+    assert btn.get_attribute("aria-pressed") == "true"
+    assert len(xs()) == 7 < side_by_side                 # one column per day
+    assert "came from above zero" in page.locator(".fwhca-note").inner_text()
+    zero = page.evaluate("+document.querySelector('.fwhca-grid.zero').getAttribute('y1')")
+    home = page.locator(".fwhca-bar-r.c-home").first
+    assert float(home.get_attribute("y")) >= zero - 0.5   # home load is a use: below zero
+    assert "Home load: -" not in home.locator("title").text_content()   # the real value
+    page.reload()
+    page.wait_for_selector(".fwhca-bar-r")
+    assert page.locator("[data-stack]").get_attribute("aria-pressed") == "true"
+    assert len(xs()) == 1                                # this week: today only, one column
+    page.select_option(".fwhca-period", "day5")
+    page.wait_for_selector(".fwhca-line")
+    assert page.locator("[data-stack]").is_hidden()     # lines don't stack
