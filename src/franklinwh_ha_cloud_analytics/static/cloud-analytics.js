@@ -13,6 +13,7 @@
   const PERIODS = [["day5", "Day (5-min)"], ["dayhour", "Day (hourly)"], ["week", "Week"],
                    ["month", "Month"], ["year", "Year"], ["lifetime", "Lifetime"]];
   const KEY = "fwh-cloud-analytics:period";
+  const KEY_STACK = "fwh-cloud-analytics:stacked";   // "1": bars stacked, one column per bucket
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -26,7 +27,8 @@
 
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud" }, options || {});
-    const st = { period: store.get(KEY) || "day5", date: localToday(), data: null, busy: false };
+    const st = { period: store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
+                 stacked: store.get(KEY_STACK) === "1" };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
     el.innerHTML =
@@ -34,6 +36,8 @@
       PERIODS.map((p) => '<option value="' + p[0] + '">' + p[1] + "</option>").join("") +
       '</select><div class="fwhca-nav"><button type="button" data-step="prev" aria-label="Previous period">‹</button>' +
       '<input type="date" aria-label="Date"><button type="button" data-step="next" aria-label="Next period">›</button>' +
+      '<button type="button" data-stack aria-pressed="false" aria-label="Stacked bars" title="Stacked: where the energy came from above zero, where it went below">' +
+      '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 2h4v5H3zM3 9h4v5H3zM9 5h4v3H9zM9 10h4v4H9z" fill="currentColor"/></svg></button>' +
       '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div></div>' +
       '<p class="fwhca-status" aria-live="polite"></p><div class="fwhca-chart"></div>' +
       '<div class="fwhca-legend"></div><p class="fwhca-note"></p>';
@@ -45,6 +49,7 @@
       if (!b || st.busy) return;
       if (b.dataset.step && st.data && st.data.nav[b.dataset.step]) { st.date = st.data.nav[b.dataset.step]; load(); }
       else if ("refresh" in b.dataset) load(true);
+      else if ("stack" in b.dataset) { st.stacked = !st.stacked; store.set(KEY_STACK, st.stacked ? "1" : "0"); render(); }
     });
     const periodIn = $(".fwhca-period");
     periodIn.addEventListener("change", () => { st.period = periodIn.value; store.set(KEY, st.period); load(); });
@@ -73,6 +78,9 @@
       dateIn.max = localToday();
       $("[data-step=prev]").disabled = !d || !!d.error || !d.nav || !d.nav.prev;
       $("[data-step=next]").disabled = !d || !!d.error || !d.nav || !d.nav.next;
+      const stackBtn = $("[data-stack]");
+      stackBtn.hidden = !d || !!d.error || d.chart !== "bars";
+      stackBtn.setAttribute("aria-pressed", String(st.stacked));
       const status = $(".fwhca-status");
       status.classList.toggle("fwhca-err", !!(d && d.error));
       if (st.busy) status.textContent = "Loading from " + o.sourceLabel + "…";
@@ -83,7 +91,9 @@
       const ok = d && !d.error && !st.busy;
       $(".fwhca-chart").innerHTML = ok ? (d.empty ? '<p class="fwhca-empty">No cloud data for this period.</p>' : chart(d)) : "";
       $(".fwhca-legend").innerHTML = ok && !d.empty ? legend(d) : "";
-      $(".fwhca-note").textContent = ok && d.note ? d.note : "";
+      $(".fwhca-note").textContent = ok ? [d.note, st.stacked && d.chart === "bars" && !d.empty
+        ? "Stacked: where the energy came from above zero (solar, battery, grid import), where it went below (home, battery charge, grid export)." : null]
+        .filter(Boolean).join(" ") : "";
     }
 
     // Series with nothing but null or 0 (a site with no generator) are left out.
@@ -99,7 +109,16 @@
       // drawn at the panel's own width, so axis text stays readable on a phone
       const S = shown(d), n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
             H = W < 520 ? 220 : 260, L = 44, R = 8, T = 24, B = 28;
-      const vals = S.flatMap((s) => s.values).filter((v) => v != null);
+      const stack = st.stacked && d.chart === "bars";
+      // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
+      // it is drawn below (its tooltip keeps the real value).
+      const drawn = (s, v) => (stack && s.key === "home" && v != null ? -v : v);
+      // Stacked: positives pile up above zero and negatives below, so the range is the
+      // per-bucket sums rather than the single values.
+      const vals = stack ? d.labels.flatMap((_, i) => [
+          S.reduce((a, s) => a + Math.max(0, drawn(s, s.values[i]) || 0), 0),
+          S.reduce((a, s) => a + Math.min(0, drawn(s, s.values[i]) || 0), 0)])
+        : S.flatMap((s) => s.values).filter((v) => v != null);
       let hi = Math.max(0, ...vals), lo = Math.min(0, ...vals);
       if (hi === lo) hi = lo + 1;
       const step = nice((hi - lo) / 4);
@@ -122,6 +141,20 @@
         // one invisible column per sample, so hovering anywhere shows that time's values
         d.labels.forEach((t, i) => { g += '<rect class="fwhca-hit" x="' + (x(i) - cw / 2) + '" y="' + T + '" width="' + cw + '" height="' + (H - T - B) + '"><title>' +
           esc(t + "\n" + S.map((s) => s.label + ": " + fmt(s.values[i], d.unit)).join("\n")) + "</title></rect>"; });
+      } else if (stack) {
+        const bw = Math.max(1, cw * 0.7);
+        d.labels.forEach((t, i) => {
+          let up = 0, down = 0;
+          S.forEach((s) => {
+            const real = s.values[i], v = drawn(s, real);
+            if (v == null || v === 0) return;
+            const from = v > 0 ? up : down, to = from + v;
+            if (v > 0) up = to; else down = to;
+            g += '<rect class="fwhca-bar-r c-' + esc(s.key) + '" x="' + (x(i) - bw / 2).toFixed(1) + '" width="' + bw.toFixed(1) +
+                 '" y="' + Math.min(y(from), y(to)).toFixed(1) + '" height="' + Math.max(0.5, Math.abs(y(to) - y(from))).toFixed(1) +
+                 '"><title>' + esc(t + " · " + s.label + ": " + fmt(real, d.unit)) + "</title></rect>";
+          });
+        });
       } else {
         const bw = Math.max(1, cw * 0.8 / Math.max(S.length, 1));
         S.forEach((s, k) => s.values.forEach((v, i) => {
