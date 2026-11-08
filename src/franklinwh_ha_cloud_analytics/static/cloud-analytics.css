@@ -1,0 +1,35 @@
+/* FranklinWH cloud analytics panel. It sits inside the host's page and takes the host's text
+ * colour; a host can override any --ca- token. */
+.fwhca{ --ca-muted: color-mix(in srgb, currentColor 60%, transparent); --ca-line: color-mix(in srgb, currentColor 18%, transparent);
+  --ca-accent: #2f9e5d; --ca-crit: #d1453b;
+  --ca-home: #5b8def; --ca-solar: #e8b100; --ca-generator: #9b6bd6;
+  --ca-battery: #2fae6b; --ca-battery_discharge: #2fae6b; --ca-battery_charge: #7fd1a3;
+  --ca-grid: #8a94a3; --ca-grid_import: #d1453b; --ca-grid_export: #8a94a3; }
+.fwhca-bar{ display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.fwhca-periods, .fwhca-nav{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fwhca button, .fwhca input{ font: inherit; font-size: .82rem; color: inherit; background: transparent; border: 1px solid var(--ca-line); border-radius: 8px; padding: 5px 10px; min-height: 34px; }
+.fwhca button{ cursor: pointer; }
+.fwhca button:disabled{ opacity: .4; cursor: default; }
+.fwhca button[aria-selected="true"]{ border-color: var(--ca-accent); color: var(--ca-accent); }
+.fwhca button:focus-visible, .fwhca input:focus-visible{ outline: 2px solid var(--ca-accent); outline-offset: 2px; }
+.fwhca-status{ margin: 10px 0 4px; font-size: .82rem; color: var(--ca-muted); }
+.fwhca-status.fwhca-err{ color: var(--ca-crit); }
+.fwhca-chart svg{ width: 100%; height: auto; display: block; }
+.fwhca-empty{ padding: 40px 0; text-align: center; color: var(--ca-muted); }
+.fwhca-grid{ stroke: var(--ca-line); stroke-width: 1; }
+.fwhca-grid.zero{ stroke: var(--ca-muted); }
+.fwhca-ax{ fill: var(--ca-muted); font-size: 11px; }
+.fwhca-line{ fill: none; stroke-width: 1.6; }
+.fwhca-hit{ fill: transparent; }
+.fwhca-hit:hover{ fill: var(--ca-line); }
+.fwhca-legend{ display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; margin-top: 6px; }
+.fwhca-key i{ display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.fwhca-note{ font-size: .78rem; color: var(--ca-muted); margin: 6px 0 0; }
+.fwhca abbr{ text-decoration: none; color: var(--ca-muted); }
+.c-home{ --c: var(--ca-home); } .c-solar{ --c: var(--ca-solar); } .c-generator{ --c: var(--ca-generator); }
+.c-battery{ --c: var(--ca-battery); } .c-battery_discharge{ --c: var(--ca-battery_discharge); } .c-battery_charge{ --c: var(--ca-battery_charge); }
+.c-grid{ --c: var(--ca-grid); } .c-grid_import{ --c: var(--ca-grid_import); } .c-grid_export{ --c: var(--ca-grid_export); }
+.fwhca-line[class*="c-"]{ stroke: var(--c); }
+.fwhca-bar-r[class*="c-"], .fwhca-key i[class*="c-"]{ fill: var(--c); background: var(--c); }
+@media (max-width: 520px){ .fwhca-bar{ flex-direction: column; align-items: stretch; } .fwhca-periods button{ flex: 1 1 30%; } }
+.fwhca [hidden]{ display: none !important; }
