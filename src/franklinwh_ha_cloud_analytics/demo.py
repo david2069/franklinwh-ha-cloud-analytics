@@ -33,6 +33,7 @@ def _day(on: date) -> dict:
                                     "powerSolarFhpArray", "powerGirdHomeArray",
                                     "powerGirdFhpArray", "powerFhpHomeArray",
                                     "powerFhpGirdArray")}
+    soc, socs = 40.0, []
     for i in range(288):
         h = i / 12
         t.append(f"{on.isoformat()} {int(h):02d}:{i % 12 * 5:02d}")
@@ -46,7 +47,9 @@ def _day(on: date) -> dict:
                 "powerGirdFhpArray": 0.0, "powerFhpHomeArray": b_home, "powerFhpGirdArray": 0.0}
         for k, v in vals.items():
             flows[k].append(round(max(0.0, v), 3))
-    return {"deviceTimeArray": t, **flows}
+        soc = min(100.0, max(5.0, soc + (s_bat - b_home) / 12 / 13.6 * 100))
+        socs.append(round(soc, 1))
+    return {"deviceTimeArray": t, **flows, "socArray": socs}
 
 
 def _buckets(labels: list[str], today: date) -> dict:

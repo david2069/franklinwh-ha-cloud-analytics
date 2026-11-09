@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.1.8] — 2026-11-10
+
+(0.1.7 was tagged on the 0.1.6 commit by mistake and never reached PyPI.)
+
+### Added
+- **State of charge on the Day views:** Day (5-min) draws the cloud's SoC (`socArray`) and
+  Day (hourly) its hourly mean, as a dashed line on a 0–100 % axis at the right, with a
+  chip, the readout and the export, as Local and the FranklinWH app show it. Week to
+  Lifetime have none (the cloud's totals carry no SoC).
+
 ## [0.1.6] — 2026-11-09
 
 ### Added

@@ -30,7 +30,7 @@
   // uses it; after that the payload's date and nav are the site's calendar.
   const localToday = () => { const d = new Date(); const p = (n) => String(n).padStart(2, "0");
     return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
-  const fmt = (v, unit) => v == null ? "no data" : (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)) + " " + unit;
+  const fmt = (v, unit) => v == null ? "no data" : (unit === "%" || Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)) + " " + unit;
 
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
@@ -145,9 +145,11 @@
     }
 
     function chart(d) {
-      // drawn at the panel's own width, so axis text stays readable on a phone
-      const S = shown(d), n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
-            H = W < 520 ? 220 : 260, L = 44, R = 8, T = 24, B = 28;
+      // drawn at the panel's own width, so axis text stays readable on a phone. SoC (axis
+      // "pct") is a line on its own 0-100 % axis at the right, whatever the style.
+      const P = shown(d).filter((s) => s.axis === "pct"), S = shown(d).filter((s) => s.axis !== "pct"),
+            n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
+            H = W < 520 ? 220 : 260, L = 44, R = P.length ? 36 : 8, T = 24, B = 28;
       const sty = style(d), stack = st.stacked && sty === "bars";
       // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
       // it is drawn below (its tooltip keeps the real value).
@@ -168,6 +170,11 @@
       for (let v = lo; v <= hi + step / 2; v += step) {
         g += '<line class="fwhca-grid' + (Math.abs(v) < step / 1e6 ? " zero" : "") + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>' +
              '<text class="fwhca-ax" x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + +v.toFixed(2) + "</text>";
+      }
+      const yp = (v) => T + (100 - v) / 100 * (H - T - B);
+      if (P.length) {
+        [0, 50, 100].forEach((v) => { g += '<text class="fwhca-ax fwhca-pct" x="' + (W - R + 6) + '" y="' + (yp(v) + 4) + '">' + v + "</text>"; });
+        g += '<text class="fwhca-ax fwhca-pct" x="' + (W - 4) + '" y="12" text-anchor="end">%</text>';
       }
       const every = Math.ceil(n / (W < 520 ? 4 : 8));
       d.labels.forEach((t, i) => { if (i % every === 0) g += '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(short(t, d.period)) + "</text>"; });
@@ -209,6 +216,11 @@
                '" height="' + Math.max(0.5, Math.abs(y(v) - y(0))).toFixed(1) + '"/>';
         }));
       }
+      P.forEach((s) => {
+        let path = "", pen = false;
+        s.values.forEach((v, i) => { if (v == null) { pen = false; return; } path += (pen ? "L" : "M") + x(i).toFixed(1) + " " + yp(v).toFixed(1); pen = true; });
+        g += '<path class="fwhca-line c-' + esc(s.key) + '" d="' + path + '"><title>' + esc(s.label) + "</title></path>";
+      });
       return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Cloud energy chart in ' + esc(d.unit) + '">' +
              '<text class="fwhca-ax" x="4" y="12">' + esc(d.unit) + "</text>" + g +
              '<line class="fwhca-guide" y1="' + T + '" y2="' + (H - B) + '" x1="-9" x2="-9"/></svg>';
@@ -231,7 +243,7 @@
       const gx = (geo.L + geo.cw * (i + 0.5)).toFixed(1), guide = svg.querySelector(".fwhca-guide");
       guide.setAttribute("x1", gx); guide.setAttribute("x2", gx);
       tip.innerHTML = '<b>' + esc(long(d.labels[i], d)) + "</b>" + shown(d).map((s) => '<span><i class="c-' + esc(s.key) + '"></i>' +
-        esc(s.label) + ": " + esc(fmt(s.values[i], d.unit)) + "</span>").join("");
+        esc(s.label) + ": " + esc(fmt(s.values[i], s.unit || d.unit)) + "</span>").join("");
       tip.hidden = false;
       const pr = plot.getBoundingClientRect(), px = ev.clientX - pr.left, w = tip.offsetWidth;
       tip.style.left = Math.max(0, Math.min(pr.width - w, px + (px > pr.width / 2 ? -w - 12 : 12))) + "px";
@@ -262,7 +274,7 @@
       } else {
         const cell = (v) => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
         const head = [d.period === "day5" || d.period === "dayhour" ? "time" : "date"]
-          .concat(d.series.map((s) => s.label + " (" + d.unit + ")"));
+          .concat(d.series.map((s) => s.label + " (" + (s.unit || d.unit) + ")"));
         body = [head].concat(d.labels.map((t, i) => [t].concat(d.series.map((s) => s.values[i]))))
           .map((r) => r.map(cell).join(",")).join("\n") + "\n";
         type = "text/csv";

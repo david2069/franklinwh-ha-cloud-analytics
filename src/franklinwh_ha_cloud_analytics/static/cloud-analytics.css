@@ -4,7 +4,7 @@
   --ca-accent: #2f9e5d; --ca-crit: #d1453b;
   --ca-home: #5b8def; --ca-solar: #e8b100; --ca-generator: #9b6bd6;
   --ca-battery: #2fae6b; --ca-battery_discharge: #2fae6b; --ca-battery_charge: #7fd1a3;
-  --ca-grid: #8a94a3; --ca-grid_import: #d1453b; --ca-grid_export: #8a94a3; }
+  --ca-grid: #8a94a3; --ca-grid_import: #d1453b; --ca-grid_export: #8a94a3; --ca-soc: #14b8a6; }
 .fwhca-bar{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .fwhca-nav{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .fwhca button, .fwhca input, .fwhca select{ font: inherit; font-size: .82rem; color: inherit; background: transparent; border: 1px solid var(--ca-line); border-radius: 8px; padding: 5px 10px; min-height: 34px; }
@@ -36,6 +36,7 @@
 .fwhca abbr{ text-decoration: none; color: var(--ca-muted); }
 .c-home{ --c: var(--ca-home); } .c-solar{ --c: var(--ca-solar); } .c-generator{ --c: var(--ca-generator); }
 .c-battery{ --c: var(--ca-battery); } .c-battery_discharge{ --c: var(--ca-battery_discharge); } .c-battery_charge{ --c: var(--ca-battery_charge); }
+.c-soc{ --c: var(--ca-soc); } .fwhca-line.c-soc{ stroke-dasharray: 4 3; }
 .c-grid{ --c: var(--ca-grid); } .c-grid_import{ --c: var(--ca-grid_import); } .c-grid_export{ --c: var(--ca-grid_export); }
 .fwhca-line[class*="c-"]{ stroke: var(--c); }
 .fwhca-area[class*="c-"]{ fill: var(--c); fill-opacity: .18; stroke: none; }
