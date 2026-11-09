@@ -12,7 +12,9 @@
  * no picker of its own and leaves remembering the period to the host. {height: 380} draws
  * the chart that many pixels tall at any width, to match the host's own chart. A host with its
  * own Line | Area | Bars passes {styleControl: false, style: "bars"} and calls setStyle()
- * (null = lines for a day, bars otherwise); style() is the one drawn.
+ * (null = lines for a day, bars otherwise); style() is the one drawn. {stackControl: false,
+ * stacked} with setStacked(), and {navControl: false, date} with setDate() / date(), hand
+ * the Stack toggle and the date stepping to the host as well.
  */
 (function () {
   "use strict";
@@ -39,9 +41,10 @@
 
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
-                              periodPicker: true, period: null, height: null, styleControl: true, style: null }, options || {});
-    const st = { period: o.period || store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
-                 stacked: store.get(KEY_STACK) === "1",
+                              periodPicker: true, period: null, height: null, styleControl: true, style: null,
+                              stackControl: true, stacked: false, navControl: true, date: null }, options || {});
+    const st = { period: o.period || store.get(KEY) || "day5", date: o.date || localToday(), data: null, busy: false,
+                 stacked: o.stackControl ? store.get(KEY_STACK) === "1" : !!o.stacked, detailsOpen: false,
                  style: o.styleControl ? (STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null)
                                        : (STYLES.includes(o.style) ? o.style : null),
                  hidden: list(KEY_HIDDEN), extras: list(KEY_EXTRAS) };
@@ -81,6 +84,7 @@
         store.set(extra ? KEY_EXTRAS : KEY_HIDDEN, JSON.stringify(st[f])); render();
       }
       else if ("stack" in b.dataset) { st.stacked = !st.stacked; store.set(KEY_STACK, st.stacked ? "1" : "0"); render(); }
+      else if ("details" in b.dataset) { st.detailsOpen = !st.detailsOpen; render(); }
     });
     const periodIn = $(".fwhca-period");
     if (periodIn) periodIn.addEventListener("change", () => { st.period = periodIn.value; store.set(KEY, st.period); load(); });
@@ -92,6 +96,19 @@
     }
     // A host's own Line | Area | Bars (styleControl: false); null is automatic. Not stored.
     function setStyle(s) { st.style = STYLES.includes(s) ? s : null; render(); }
+    // A host's own Stack toggle (stackControl: false) and date picker (navControl: false).
+    function setStacked(on) { st.stacked = !!on; render(); }
+    function setDate(d) { st.date = d || null; load(); }
+    // Details ▾: tick the cloud's other fields to give them a chip (they start off).
+    el.addEventListener("change", (e) => {
+      const k = e.target.dataset && e.target.dataset.extra;
+      if (!k) return;
+      st.extras = e.target.checked ? st.extras.concat(k) : st.extras.filter((x) => x !== k);
+      store.set(KEY_EXTRAS, JSON.stringify(st.extras)); render();
+    });
+    document.addEventListener("click", (e) => {
+      if (st.detailsOpen && !e.target.closest(".fwhca-details")) { st.detailsOpen = false; render(); }
+    });
     dateIn.addEventListener("change", () => { if (dateIn.value) { st.date = dateIn.value; load(); } });
 
     async function load(refresh) {
@@ -111,7 +128,7 @@
       const d = st.data;
       if (periodIn) { periodIn.value = st.period; periodIn.disabled = st.busy; }
       const life = st.period === "lifetime";
-      $(".fwhca-nav").hidden = life;
+      $(".fwhca-nav").hidden = life || !o.navControl;
       dateIn.value = st.date || "";
       dateIn.max = localToday();
       $("[data-step=prev]").disabled = !d || !!d.error || !d.nav || !d.nav.prev;
@@ -121,7 +138,7 @@
       $(".fwhca-seg").hidden = !sty || !o.styleControl;
       STYLES.forEach((k) => $("[data-style=" + k + "]").setAttribute("aria-pressed", String(sty === k)));
       const stackBtn = $("[data-stack]");
-      stackBtn.hidden = sty !== "bars";
+      stackBtn.hidden = sty !== "bars" || !o.stackControl;
       stackBtn.setAttribute("aria-pressed", String(st.stacked));
       const status = $(".fwhca-status");
       status.classList.toggle("fwhca-err", !!(d && d.error));
@@ -133,6 +150,8 @@
       const ok = d && !d.error && !st.busy;
       $(".fwhca-chart").innerHTML = ok ? (d.empty ? '<p class="fwhca-empty">No cloud data for this period.</p>' : chart(d)) : "";
       $(".fwhca-legend").innerHTML = ok && !d.empty ? legend(d) : "";
+      const menu = $(".fwhca-menu");                     // open leftwards when it would run off the right
+      if (menu && menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) menu.classList.add("fwhca-end");
       hideTip();
       $(".fwhca-note").textContent = ok ? [d.note, st.stacked && sty === "bars" && !d.empty
         ? "Stacked: where the energy came from above zero (solar, battery, grid import), where it went below (home, battery charge, grid export)." : null]
@@ -147,13 +166,18 @@
     const shown = (d) => present(d).filter(isOn);
 
     function legend(d) {
-      return present(d).map((s) => {
+      // the main series, then the picked details; Details ▾ lists every detail with data
+      const details = present(d).filter((s) => s.extra);
+      return present(d).filter((s) => !s.extra || isOn(s)).map((s) => {
         const on = isOn(s);
-        return '<button type="button" class="fwhca-key' + (s.extra ? " fwhca-x" : "") + '" data-key="' + esc(s.key) + '" aria-pressed="' + on + '" title="' + (on ? "Hide " : "Show ") + esc(s.label) + '">' +
+        return '<button type="button" class="fwhca-key c-' + esc(s.key) + (s.extra ? " fwhca-x" : "") + '" data-key="' + esc(s.key) + '" aria-pressed="' + on + '" title="' + (on ? "Hide " : "Show ") + esc(s.label) + '">' +
           '<i class="c-' + esc(s.key) + '"></i>' + esc(s.label) +
           (s.evidence === "INFERRED" ? ' <abbr title="Inferred from the field name; never checked">(inferred)</abbr>' : "") +
           (s.derived ? ' <abbr title="Added up from the cloud\'s 5-minute flows">≈</abbr>' : "") + "</button>";
-      }).join("");
+      }).join("") + (details.length ? '<span class="fwhca-details"><button type="button" class="fwhca-key fwhca-more" data-details aria-haspopup="true" aria-expanded="' +
+        st.detailsOpen + '">Details ▾</button>' + (st.detailsOpen ? '<span class="fwhca-menu" role="group" aria-label="Detailed metrics">' +
+        details.map((s) => '<label><input type="checkbox" data-extra="' + esc(s.key) + '"' + (isOn(s) ? " checked" : "") + '><i class="c-' + esc(s.key) + '"></i>' +
+          esc(s.label) + "</label>").join("") + "</span>" : "") + "</span>" : "");
     }
 
     function chart(d) {
@@ -302,6 +326,7 @@
     }
 
     return { reload: () => load(true), exportData, setPeriod, period: () => st.period, setStyle,
+             setStacked, setDate, date: () => st.date,
              style: () => (st.data && !st.data.error ? style(st.data) : st.style) };
   }
 

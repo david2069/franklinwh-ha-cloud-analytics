@@ -54,7 +54,9 @@ calls `setPeriod(p)` from its picker and remembers the period itself; the panel 
 no picker. `FWHCloudAnalytics.PERIODS` lists the periods as `[value, label]`. The host puts the export buttons
 where its own analytics has them; `exportData` downloads the shown period
 (`fwh-cloud-<period>-<date>.csv`), every series the cloud returned, empty where it has none.
-A host with its own **Line | Area | Bars** passes `{styleControl: false, style: s}` and calls
+Likewise `{stackControl: false, stacked}` + `setStacked()` and `{navControl: false, date}` +
+`setDate()` / `date()` hand over the Stack toggle and the date stepping; `--ca-menu-bg` sets
+the Details menu's background. A host with its own **Line | Area | Bars** passes `{styleControl: false, style: s}` and calls
 `setStyle(s)` (`null` = automatic); `style()` returns the style drawn.
 `{height: 380}` draws the chart that many pixels tall at any width (default 260, 220 on a
 phone), so it can match the host's own chart.
@@ -80,7 +82,7 @@ INFERRED ones are labelled. Both Day views also draw the battery's state of char
 (`socArray`) as a dashed line on its own 0–100 % axis at the right; the cloud's Week to
 Lifetime totals have no SoC. The cloud's other fields with data for the period (home from
 solar, grid and battery; battery charged from solar and grid; export from solar and battery;
-the 5-minute flows on a day) get chips that start off; fields with no data get none, but the
+the 5-minute flows on a day) are listed under **Details ▾**; ticking one gives it a chip; fields with no data get none, but the
 payload's `raw` and the JSON export keep every array the cloud returned. The payload's
 `flows` is the period's kWh per arc (solar → home, battery → grid, …) for a Sankey, from the
 cloud's own breakdown (a day: the 5-minute flows). No data stays null,
