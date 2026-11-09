@@ -9,7 +9,8 @@
  *
  * A host with its own period picker (one picker for its local and cloud views) passes
  * {periodPicker: false, period: "week"} and calls setPeriod() from it; the panel then draws
- * no picker of its own and leaves remembering the period to the host.
+ * no picker of its own and leaves remembering the period to the host. {height: 380} draws
+ * the chart that many pixels tall at any width, to match the host's own chart.
  */
 (function () {
   "use strict";
@@ -34,7 +35,7 @@
 
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
-                              periodPicker: true, period: null }, options || {});
+                              periodPicker: true, period: null, height: null }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
                  stacked: store.get(KEY_STACK) === "1", style: STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null,
                  hidden: (() => { try { const h = JSON.parse(store.get(KEY_HIDDEN) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } })() };
@@ -149,7 +150,7 @@
       // "pct") is a line on its own 0-100 % axis at the right, whatever the style.
       const P = shown(d).filter((s) => s.axis === "pct"), S = shown(d).filter((s) => s.axis !== "pct"),
             n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
-            H = W < 520 ? 220 : 260, L = 44, R = P.length ? 36 : 8, T = 24, B = 28;
+            H = o.height || (W < 520 ? 220 : 260), L = 44, R = P.length ? 36 : 8, T = 24, B = 28;
       const sty = style(d), stack = st.stacked && sty === "bars";
       // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
       // it is drawn below (its tooltip keeps the real value).

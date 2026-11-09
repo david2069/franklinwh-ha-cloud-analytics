@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.9] — 2026-11-10
+
+### Added
+- **Chart height:** `mount(el, {height: 380})` draws the chart that many pixels tall at any
+  width, so a host's local and cloud charts are the same size.
+
 ## [0.1.8] — 2026-11-10
 
 (0.1.7 was tagged on the 0.1.6 commit by mistake and never reached PyPI.)
