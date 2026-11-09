@@ -152,8 +152,13 @@
       const ok = d && !d.error && !st.busy;
       $(".fwhca-chart").innerHTML = ok ? (d.empty ? '<p class="fwhca-empty">No cloud data for this period.</p>' : chart(d)) : "";
       $(".fwhca-legend").innerHTML = ok && !d.empty ? legend(d) : "";
-      const menu = $(".fwhca-menu");                     // open leftwards when it would run off the right
-      if (menu && menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) menu.classList.add("fwhca-end");
+      const menu = $(".fwhca-menu");                     // keep the whole menu on screen
+      if (menu) {
+        const r = menu.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+        let shift = r.right > vw - 8 ? vw - 8 - r.right : 0;
+        if (r.left + shift < 8) shift = 8 - r.left;
+        menu.style.left = shift + "px";
+      }
       hideTip();
       $(".fwhca-note").textContent = ok ? [d.note, st.stacked && sty === "bars" && !d.empty
         ? "Stacked: where the energy came from above zero (solar, battery, grid import), where it went below (home, battery charge, grid export)." : null]
