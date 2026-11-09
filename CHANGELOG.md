@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.1.12] — 2026-11-10
+
+### Added
+- **The period's flows for a Sankey:** the payload's `flows` gives kWh per arc
+  (`solar_to_home`, `solar_to_battery`, `solar_to_grid`, `battery_to_home`,
+  `battery_to_grid`, `grid_to_home`, `grid_to_battery`, and the generator's) over the whole
+  period: the cloud's own breakdown for Week to Lifetime, the 5-minute flows × 5/60 h for a
+  day; `null` when the reply has no breakdown. The JSON export includes it.
+
 ## [0.1.11] — 2026-11-10
 
 ### Added

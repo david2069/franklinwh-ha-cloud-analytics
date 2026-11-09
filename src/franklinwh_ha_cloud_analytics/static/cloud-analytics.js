@@ -283,7 +283,7 @@
       let body, type;
       if (fmt === "json") {
         body = JSON.stringify({ source: d.source, period: d.period, date: d.date, unit: d.unit, note: d.note,
-          labels: d.labels, series: d.series, raw: d.raw || {}, fetched_at: d.fetched_at || null }, null, 2);
+          labels: d.labels, series: d.series, flows: d.flows || null, raw: d.raw || {}, fetched_at: d.fetched_at || null }, null, 2);
         type = "application/json";
       } else {
         const cell = (v) => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
