@@ -398,3 +398,16 @@ def test_grid_lines_do_not_take_the_grid_series_colour(page):
     line = page.evaluate("getComputedStyle(document.querySelector('.fwhca-grid')).stroke")
     series = page.evaluate("getComputedStyle(document.querySelector('.fwhca-key[data-key=grid] i')).backgroundColor")
     assert line != series
+
+
+def test_a_host_can_drop_the_refresh_button_and_put_the_status_under_the_chart(page):
+    # Owner, 2026-11-10: the bridge's Refresh serves both; Local's note is under its chart.
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d);
+        FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', refreshControl: false, statusBelow: true}); }""")
+    page.wait_for_selector("#host .fwhca-chart svg")
+    assert page.locator("#host [data-refresh]").count() == 0
+    status = page.locator("#host .fwhca-status").bounding_box()
+    chart = page.locator("#host .fwhca-chart svg").bounding_box()
+    legend = page.locator("#host .fwhca-legend").bounding_box()
+    assert chart["y"] + chart["height"] <= status["y"] <= legend["y"]

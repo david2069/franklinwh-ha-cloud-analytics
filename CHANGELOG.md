@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.18] — 2026-11-10
+
+### Added
+- **`refreshControl: false`** drops the panel's ↻ (a host's own Refresh calls `reload()`),
+  and **`statusBelow: true`** puts the status line under the chart, where a host's own note
+  sits, so both charts start at the same height.
+
 ## [0.1.17] — 2026-11-10
 
 ### Fixed

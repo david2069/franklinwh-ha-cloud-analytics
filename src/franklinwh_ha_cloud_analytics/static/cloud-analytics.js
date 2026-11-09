@@ -14,7 +14,9 @@
  * own Line | Area | Bars passes {styleControl: false, style: "bars"} and calls setStyle()
  * (null = lines for a day, bars otherwise); style() is the one drawn. {stackControl: false,
  * stacked} with setStacked(), and {navControl: false, date} with setDate() / date(), hand
- * the Stack toggle and the date stepping to the host as well.
+ * the Stack toggle and the date stepping to the host as well. {refreshControl: false} drops
+ * the ↻ (the host's own Refresh calls reload()), and {statusBelow: true} puts the status line
+ * under the chart.
  */
 (function () {
   "use strict";
@@ -42,7 +44,8 @@
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
                               periodPicker: true, period: null, height: null, styleControl: true, style: null,
-                              stackControl: true, stacked: false, navControl: true, date: null }, options || {});
+                              stackControl: true, stacked: false, navControl: true, date: null,
+                              refreshControl: true, statusBelow: false }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: o.date || localToday(), data: null, busy: false,
                  stacked: o.stackControl ? store.get(KEY_STACK) === "1" : !!o.stacked, detailsOpen: false,
                  style: o.styleControl ? (STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null)
@@ -50,6 +53,9 @@
                  hidden: list(KEY_HIDDEN), extras: list(KEY_EXTRAS) };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
+    // the status line (and ↻), above the chart, or under it where a host's own note sits
+    const statusbar = '<div class="fwhca-statusbar' + (o.statusBelow ? " fwhca-below" : "") + '"><p class="fwhca-status" aria-live="polite"></p>' +
+      (o.refreshControl ? '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button>' : "") + "</div>";
     el.innerHTML =
       '<div class="fwhca-bar">' + (o.periodPicker ? '<select class="fwhca-period" aria-label="Period">' +
       PERIODS.map((p) => '<option value="' + p[0] + '">' + p[1] + "</option>").join("") +
@@ -57,8 +63,8 @@
       '<input type="date" aria-label="Date"><button type="button" data-step="next" aria-label="Next period">›</button>' +
       '<button type="button" data-today title="Back to today">Today</button>' +
       '</div></div>' +
-      '<div class="fwhca-statusbar"><p class="fwhca-status" aria-live="polite"></p>' +
-      '<button type="button" data-refresh aria-label="Refresh" title="Refresh">↻</button></div><div class="fwhca-plot"><div class="fwhca-chart"></div><div class="fwhca-tip" hidden></div></div>' +
+      (o.statusBelow ? "" : statusbar) + '<div class="fwhca-plot"><div class="fwhca-chart"></div><div class="fwhca-tip" hidden></div></div>' +
+      (o.statusBelow ? statusbar : "") +
       '<div class="fwhca-legendbar"><div class="fwhca-legend"></div><div class="fwhca-view">' +
       '<div class="fwhca-seg" role="group" aria-label="Chart style">' +
       '<button type="button" data-style="line" aria-pressed="false">Line</button>' +

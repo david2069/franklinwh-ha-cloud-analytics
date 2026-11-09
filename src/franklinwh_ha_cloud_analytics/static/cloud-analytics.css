@@ -15,6 +15,7 @@
 .fwhca select option{ color: initial; }
 .fwhca button:focus-visible, .fwhca input:focus-visible, .fwhca select:focus-visible{ outline: 2px solid var(--ca-accent); outline-offset: 2px; }
 .fwhca-statusbar{ display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0 4px; }
+.fwhca-statusbar.fwhca-below{ margin: 8px 0 0; }
 .fwhca-statusbar button{ min-width: 32px; padding: 4px 6px; }
 .fwhca-legendbar{ display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px; margin-top: 6px; }
 .fwhca-view{ display: flex; gap: 4px; }
