@@ -285,3 +285,18 @@ def test_a_host_can_own_the_period_picker(page):
     page.wait_for_function("document.querySelector('#host input[type=date]').value === '2026-10-26'")   # the week of 1 Nov
     assert page.evaluate("h.period()") == "week"
     assert page.evaluate("localStorage.getItem('fwh-cloud-analytics:period')") is None
+
+
+def test_a_host_can_set_the_chart_height_to_match_its_own(browser, base):
+    # Owner, 2026-11-10: Local and Cloud charts the same size; the bridge's is 380 px tall.
+    for width in (1100, 375):
+        ctx = browser.new_context(viewport={"width": width, "height": 800})
+        ctx.clock.set_system_time(NOON)
+        pg = ctx.new_page()
+        pg.goto(base + "/")
+        pg.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+            document.body.appendChild(d);
+            FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', height: 380}); }""")
+        pg.wait_for_selector("#host .fwhca-chart svg")
+        assert round(pg.locator("#host .fwhca-chart svg").bounding_box()["height"]) == 380
+        ctx.close()
