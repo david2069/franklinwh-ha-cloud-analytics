@@ -103,3 +103,12 @@ def test_days_after_today_are_not_asked_for_and_reads_are_cached():
 def test_a_range_must_run_forwards():
     with pytest.raises(ValueError):
         run(Client(), datetime(2026, 11, 6), datetime(2026, 11, 5))
+
+
+def test_a_host_can_ask_for_hourly_slots_on_a_short_range():
+    # the DC bridge's Day (hourly) with a From-To keeps its hours (owner, 2026-11-10)
+    c = Client()
+    p = asyncio.run(ca.fetch_range(c, datetime(2026, 11, 5, 6), datetime(2026, 11, 5, 10), today=TODAY, res="hour"))
+    assert p["res"] == "hour" and p["labels"] == ["2026-11-05 06:00", "2026-11-05 07:00", "2026-11-05 08:00", "2026-11-05 09:00"]
+    with pytest.raises(ValueError):
+        asyncio.run(ca.fetch_range(c, datetime(2026, 11, 5, 6), datetime(2026, 11, 5, 10), today=TODAY, res="week"))

@@ -111,10 +111,12 @@
     // A host's own Stack toggle (stackControl: false) and date picker (navControl: false).
     function setStacked(on) { st.stacked = !!on; render(); }
     function setDate(d) { st.date = d || null; load(); }
-    // A host's custom range: site-local "YYYY-MM-DDTHH:MM", the end not included.
-    function setRange(from, to) {
-      if (!from || !to || (st.period === "custom" && st.range && st.range.from === from && st.range.to === to)) return;
-      st.period = "custom"; st.range = { from, to };
+    // A host's custom range: site-local "YYYY-MM-DDTHH:MM", the end not included; res
+    // ("5min", "hour", "day", "month") asks for those slots, else the range's length picks.
+    function setRange(from, to, res) {
+      const r = st.range;
+      if (!from || !to || (st.period === "custom" && r && r.from === from && r.to === to && (r.res || null) === (res || null))) return;
+      st.period = "custom"; st.range = res ? { from, to, res } : { from, to };
       load();
     }
     // Details ▾: tick the cloud's other fields to give them a chip (they start off).
@@ -132,7 +134,8 @@
     async function load(refresh) {
       st.busy = true; render();
       const q = new URLSearchParams(Object.assign({ period: st.period },
-        st.period === "custom" && st.range ? { from: st.range.from, to: st.range.to } : st.date ? { date: st.date } : {},
+        st.period === "custom" && st.range ? Object.assign({ from: st.range.from, to: st.range.to }, st.range.res ? { res: st.range.res } : {})
+          : st.date ? { date: st.date } : {},
         refresh ? { refresh: "1" } : {}, typeof o.params === "function" ? o.params() : o.params || {}));
       try {
         const r = await fetch(o.endpoint + (o.endpoint.includes("?") ? "&" : "?") + q);

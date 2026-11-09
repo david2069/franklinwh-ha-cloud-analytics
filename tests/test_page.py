@@ -477,3 +477,9 @@ def test_a_ranges_dates_sit_under_the_times(page):
     assert two.count() >= 2
     first = two.first.locator("tspan")
     assert first.nth(0).text_content() == "06:00" and re.search(r"3 Nov|Nov 3", first.nth(1).text_content())
+
+
+def test_set_range_can_ask_for_hourly_slots(page):
+    page.evaluate("ca.setRange('2026-11-05T06:00', '2026-11-05T10:00', 'hour')")
+    page.wait_for_selector(".fwhca-bar-r")
+    assert page.evaluate("ca.range().res") == "hour"
