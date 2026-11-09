@@ -185,16 +185,38 @@ def test_series_chips_show_and_hide_and_are_remembered(page):
     assert page.locator(".fwhca-line.c-solar").count() == 0
 
 
-def test_the_clouds_other_fields_are_chips_that_start_off(page):
-    # Owner, 2026-11-10 (#13): every field with data gets a chip, off by default.
-    chip = page.locator(".fwhca-key[data-key=solar_to_battery]")
-    assert chip.get_attribute("aria-pressed") == "false"
-    assert page.locator(".fwhca-line.c-solar_to_battery").count() == 0
-    chip.click()
+def test_detailed_metrics_are_picked_from_a_details_menu(page):
+    # Owner, 2026-11-10: rarely wanted, so not ten chips: Details ▾ lists them to tick;
+    # only the ticked ones get a chip, and the choice is remembered.
+    assert page.locator(".fwhca-key[data-key=solar_to_battery]").count() == 0
+    page.click("[data-details]")
+    box = page.locator("input[data-extra=solar_to_battery]")
+    assert not box.is_checked()
+    box.check()
+    assert page.locator(".fwhca-key[data-key=solar_to_battery]").get_attribute("aria-pressed") == "true"
     assert page.locator(".fwhca-line.c-solar_to_battery").count() == 1
     page.reload()
     page.wait_for_selector(".fwhca-chart svg")
-    assert page.locator(".fwhca-key[data-key=solar_to_battery]").get_attribute("aria-pressed") == "true"
+    assert page.locator(".fwhca-line.c-solar_to_battery").count() == 1
+    page.click("[data-details]")
+    page.locator("input[data-extra=solar_to_battery]").uncheck()
+    assert page.locator(".fwhca-key[data-key=solar_to_battery]").count() == 0
+
+
+def test_a_host_can_own_the_stack_and_the_date(page):
+    # Owner, 2026-11-10: one Stack toggle and one date picker at the top of the bridge.
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d);
+        window.h = FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', period: 'week', date: '2026-11-02',
+            styleControl: false, style: 'bars', stackControl: false, navControl: false}); }""")
+    page.wait_for_selector("#host .fwhca-bar-r")
+    assert page.locator("#host .fwhca-nav").is_hidden() and page.locator("#host [data-stack]").is_hidden()
+    assert page.evaluate("h.date()") == "2026-11-02"
+    page.evaluate("h.setStacked(true)")
+    page.wait_for_function("document.querySelector('#host .fwhca-note').textContent.includes('Stacked')")
+    page.evaluate("h.setDate('2026-10-26')")
+    page.wait_for_function("h.date() === '2026-10-26'")
+    assert page.evaluate("localStorage.getItem('fwh-cloud-analytics:stacked')") is None
 
 
 def test_every_period_can_be_bars_line_or_area_and_the_choice_is_remembered(page):

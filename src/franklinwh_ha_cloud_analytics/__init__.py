@@ -13,7 +13,7 @@ from .payload import build
 from .periods import PERIODS, Period, resolve
 from .service import Cache, fetch
 
-__version__ = "0.1.12"
+__version__ = "0.1.13"
 __all__ = ["PERIODS", "Cache", "Period", "build", "fetch", "resolve", "static_dir"]
 
 

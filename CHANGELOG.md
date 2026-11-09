@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.1.13] — 2026-11-10
+
+### Added
+- **Details ▾** (owner): the cloud's other fields are no longer a row of chips. A
+  **Details ▾** button after the chips opens a checklist of those with data; only the
+  ticked ones get a chip (remembered). It opens leftwards near the right edge.
+- **Host-owned Stack and date:** `{stackControl: false, stacked}` with `setStacked()`, and
+  `{navControl: false, date}` with `setDate()` / `date()`, so a host can put one Stack
+  toggle and one date picker over its local and cloud views.
+
+### Changed
+- **Chips look like the bridges' own:** a round dot, tinted in the series colour when on,
+  faded when off, no outline. `--ca-menu-bg` sets the Details menu's background.
+
 ## [0.1.12] — 2026-11-10
 
 ### Added
