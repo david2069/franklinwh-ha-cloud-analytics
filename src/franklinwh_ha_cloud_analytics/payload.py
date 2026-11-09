@@ -4,7 +4,8 @@ kWh periods (Week, Month, Year, Lifetime) plot the cloud's own totals as bars. D
 plots lines in kW, and Day (hourly) bars in kWh, both made from the 5-minute directional
 flows, so those series are marked derived. Each series carries the weakest evidence rating
 of the fields it uses (franklinwh_cloud.const.energy_fields). The day views also carry
-SoC (socArray, %; the hourly view its mean), on its own axis. Signs: battery discharge +,
+SoC (socArray, %; the hourly view its mean), on its own axis. The cloud's other fields
+with data here are extra series, off until picked; ``raw`` keeps every array for export. Signs: battery discharge +,
 charge −; grid import +, export −. No data stays null, never 0.
 """
 from __future__ import annotations
@@ -14,6 +15,7 @@ from franklinwh_cloud.const.energy_fields import ELECTRIC_FIELDS, POWER_FIELDS
 from .periods import Period
 
 _EVIDENCE = {f.api: f.evidence for f in (*ELECTRIC_FIELDS, *POWER_FIELDS)}
+_FIELD = {f.api: f for f in (*ELECTRIC_FIELDS, *POWER_FIELDS)}
 _RANK = {"CONFIRMED": 0, "CORROBORATED": 1, "INFERRED": 2}
 SAMPLES_PER_HOUR = 12
 
@@ -52,6 +54,17 @@ _HOURLY = {
 }
 
 
+#: The cloud's other fields with a chip of their own, off until picked (#13): key → (API
+#: array, sign). Into the battery and exports are below zero, as in the main series.
+_EXTRA_TOTALS = tuple((f.column.removesuffix("_kwh"), f.api,
+                       -1 if f.column.startswith(("battery_from_", "grid_export_from_")) else 1)
+                      for f in ELECTRIC_FIELDS
+                      if f.unit == "kWh" and f.api not in {a for _, a, _ in _TOTALS})
+_EXTRA_FLOWS = tuple((f.column.removesuffix("_kw"), f.api) for f in POWER_FIELDS if f.unit == "kW")
+LABELS.update({k: _FIELD[a].description for k, a, _ in _EXTRA_TOTALS})
+LABELS.update({k: _FIELD[a].description for k, a in _EXTRA_FLOWS})
+
+
 def _weakest(apis) -> str:
     levels = [_EVIDENCE.get(a, "INFERRED") for a in apis]
     return max(levels, key=_RANK.__getitem__) if levels else "INFERRED"
@@ -82,6 +95,13 @@ def _present(result: dict, parts) -> list[str]:
     return [a for a, _ in parts if isinstance(result.get(a), list)]
 
 
+def _extra(key, values, api, derived) -> dict | None:
+    """A chip that starts off; None when the field has nothing but null or 0 here."""
+    if not any(v not in (None, 0) for v in values):
+        return None
+    return {**_series(key, values, [api], derived), "extra": True}
+
+
 def _soc(values, derived) -> dict:
     """SoC in %, drawn on its own 0-100 axis (not in the kW or kWh sums)."""
     return {**_series("soc", values, ["socArray"], derived), "unit": "%", "axis": "pct"}
@@ -99,6 +119,10 @@ def build(period: Period, result: dict | None) -> dict:
     if period.name == "day5":
         series = [_series(k, [_combine(result, parts, i) for i in range(len(labels))],
                           _present(result, parts), True) for k, parts in _LINES.items()]
+        for k, api in _EXTRA_FLOWS:
+            arr = result.get(api)
+            if isinstance(arr, list):
+                series.append(_extra(k, [arr[i] if i < len(arr) else None for i in range(len(labels))], api, False))
         if isinstance(result.get("socArray"), list):
             soc = result["socArray"]
             series.append(_soc([soc[i] if i < len(soc) else None for i in range(len(labels))], False))
@@ -118,6 +142,14 @@ def build(period: Period, result: dict | None) -> dict:
                 vals.append(None if not samples or None in samples
                             else round(sum(samples) / SAMPLES_PER_HOUR, 4))
             series.append(_series(k, vals, _present(result, parts), True))
+        for k, api in _EXTRA_FLOWS:
+            if isinstance(result.get(api), list):
+                vals = []
+                for h in hours:
+                    samples = [_combine(result, [(api, 1)], i) for i in idx[h]]
+                    vals.append(None if not samples or None in samples
+                                else round(sum(samples) / SAMPLES_PER_HOUR, 4))
+                series.append(_extra(k, vals, api, True))
         if isinstance(result.get("socArray"), list):
             soc = result["socArray"]
             vals = []
@@ -135,8 +167,15 @@ def build(period: Period, result: dict | None) -> dict:
             arr = list(result.get(api) or [None] * len(labels))
             series.append(_series(k, [None if v is None else sign * v for v in arr],
                                   [api], False))
+        for k, api, sign in _EXTRA_TOTALS:
+            arr = result.get(api)
+            if isinstance(arr, list):
+                series.append(_extra(k, [None if v is None else sign * v for v in arr], api, False))
         out.update(chart="bars", unit="kWh")
+    series = [s for s in series if s is not None]
     out["labels"] = labels
     out["series"] = series
+    # every array the cloud returned, for the JSON export: fields empty here have no chip
+    out["raw"] = {k: v for k, v in result.items() if isinstance(v, list) and k != "deviceTimeArray"}
     out["empty"] = not any(v is not None for s in series for v in s["values"])
     return out

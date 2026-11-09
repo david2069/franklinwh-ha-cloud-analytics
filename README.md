@@ -76,7 +76,11 @@ A Day request to `get_power_details` returns a single bucket, so both Day views 
 the weakest evidence rating of the fields it uses (franklinwh-cloud's field dictionary);
 INFERRED ones are labelled. Both Day views also draw the battery's state of charge
 (`socArray`) as a dashed line on its own 0–100 % axis at the right; the cloud's Week to
-Lifetime totals have no SoC. No data stays null, never 0. Signs: battery discharge +,
+Lifetime totals have no SoC. The cloud's other fields with data for the period (home from
+solar, grid and battery; battery charged from solar and grid; export from solar and battery;
+the 5-minute flows on a day) get chips that start off; fields with no data get none, but the
+payload's `raw` and the JSON export keep every array the cloud returned. No data stays null,
+never 0. Signs: battery discharge +,
 charge −; grid import +, export −.
 
 Caching: a period that today falls in is kept for 5 minutes, a finished one for 6 hours.

@@ -22,6 +22,8 @@
   const KEY_STYLE = "fwh-cloud-analytics:style";       // "line" | "area" | "bars"; unset: lines for a day, bars otherwise
   const STYLES = ["line", "area", "bars"];
   const KEY_HIDDEN = "fwh-cloud-analytics:hidden";     // JSON list of series keys switched off
+  const KEY_EXTRAS = "fwh-cloud-analytics:extras";     // JSON list of extra series switched on (they start off)
+  const list = (k) => { try { const h = JSON.parse(store.get(k) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -38,7 +40,7 @@
                               periodPicker: true, period: null, height: null }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
                  stacked: store.get(KEY_STACK) === "1", style: STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null,
-                 hidden: (() => { try { const h = JSON.parse(store.get(KEY_HIDDEN) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } })() };
+                 hidden: list(KEY_HIDDEN), extras: list(KEY_EXTRAS) };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
     el.innerHTML =
@@ -69,9 +71,10 @@
       else if ("today" in b.dataset) { st.date = null; load(); }     // the host's today, on the site's calendar
       else if (b.dataset.style) { st.style = b.dataset.style; store.set(KEY_STYLE, st.style); render(); }
       else if (b.dataset.key) {
-        const k = b.dataset.key;
-        st.hidden = st.hidden.includes(k) ? st.hidden.filter((h) => h !== k) : st.hidden.concat(k);
-        store.set(KEY_HIDDEN, JSON.stringify(st.hidden)); render();
+        const k = b.dataset.key, extra = st.data && st.data.series.some((s) => s.key === k && s.extra);
+        const f = extra ? "extras" : "hidden";
+        st[f] = st[f].includes(k) ? st[f].filter((h) => h !== k) : st[f].concat(k);
+        store.set(extra ? KEY_EXTRAS : KEY_HIDDEN, JSON.stringify(st[f])); render();
       }
       else if ("stack" in b.dataset) { st.stacked = !st.stacked; store.set(KEY_STACK, st.stacked ? "1" : "0"); render(); }
     });
@@ -133,12 +136,14 @@
     // Series with nothing but null or 0 (a site with no generator) are left out; the chips
     // list the rest, and the chart draws the ones not switched off.
     const present = (d) => d.series.filter((s) => s.values.some((v) => v != null && v !== 0));
-    const shown = (d) => present(d).filter((s) => !st.hidden.includes(s.key));
+    // The cloud's other fields (extra) start off and are switched on one by one.
+    const isOn = (s) => (s.extra ? st.extras.includes(s.key) : !st.hidden.includes(s.key));
+    const shown = (d) => present(d).filter(isOn);
 
     function legend(d) {
       return present(d).map((s) => {
-        const on = !st.hidden.includes(s.key);
-        return '<button type="button" class="fwhca-key" data-key="' + esc(s.key) + '" aria-pressed="' + on + '" title="' + (on ? "Hide " : "Show ") + esc(s.label) + '">' +
+        const on = isOn(s);
+        return '<button type="button" class="fwhca-key' + (s.extra ? " fwhca-x" : "") + '" data-key="' + esc(s.key) + '" aria-pressed="' + on + '" title="' + (on ? "Hide " : "Show ") + esc(s.label) + '">' +
           '<i class="c-' + esc(s.key) + '"></i>' + esc(s.label) +
           (s.evidence === "INFERRED" ? ' <abbr title="Inferred from the field name; never checked">(inferred)</abbr>' : "") +
           (s.derived ? ' <abbr title="Added up from the cloud\'s 5-minute flows">≈</abbr>' : "") + "</button>";
@@ -148,7 +153,9 @@
     function chart(d) {
       // drawn at the panel's own width, so axis text stays readable on a phone. SoC (axis
       // "pct") is a line on its own 0-100 % axis at the right, whatever the style.
-      const P = shown(d).filter((s) => s.axis === "pct"), S = shown(d).filter((s) => s.axis !== "pct"),
+      // Stacked bars are the energy balance, so the extra fields (parts of it) stay out.
+      const P = shown(d).filter((s) => s.axis === "pct"),
+            S = shown(d).filter((s) => s.axis !== "pct" && !(s.extra && st.stacked && style(d) === "bars")),
             n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
             H = o.height || (W < 520 ? 220 : 260), L = 44, R = P.length ? 36 : 8, T = 24, B = 28;
       const sty = style(d), stack = st.stacked && sty === "bars";
@@ -192,7 +199,7 @@
             s.values.forEach((v, i) => { if (v == null) close(); else run.push([x(i).toFixed(1), y(v).toFixed(1)]); });
             close();
           }
-          g += '<path class="fwhca-line c-' + esc(s.key) + '" d="' + path + '"><title>' + esc(s.label) + "</title></path>";
+          g += '<path class="fwhca-line c-' + esc(s.key) + (s.extra ? " fwhca-x" : "") + '" d="' + path + '"><title>' + esc(s.label) + "</title></path>";
         });
       } else if (stack) {
         const bw = Math.max(1, cw * 0.7);
@@ -213,7 +220,7 @@
         S.forEach((s, k) => s.values.forEach((v, i) => {
           if (v == null) return;
           const bx = x(i) - cw * 0.4 + k * bw;
-          g += '<rect class="fwhca-bar-r c-' + esc(s.key) + '" x="' + bx.toFixed(1) + '" width="' + bw.toFixed(1) + '" y="' + Math.min(y(v), y(0)).toFixed(1) +
+          g += '<rect class="fwhca-bar-r c-' + esc(s.key) + (s.extra ? " fwhca-x" : "") + '" x="' + bx.toFixed(1) + '" width="' + bw.toFixed(1) + '" y="' + Math.min(y(v), y(0)).toFixed(1) +
                '" height="' + Math.max(0.5, Math.abs(y(v) - y(0))).toFixed(1) + '"/>';
         }));
       }
@@ -270,7 +277,7 @@
       let body, type;
       if (fmt === "json") {
         body = JSON.stringify({ source: d.source, period: d.period, date: d.date, unit: d.unit, note: d.note,
-          labels: d.labels, series: d.series, fetched_at: d.fetched_at || null }, null, 2);
+          labels: d.labels, series: d.series, raw: d.raw || {}, fetched_at: d.fetched_at || null }, null, 2);
         type = "application/json";
       } else {
         const cell = (v) => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
