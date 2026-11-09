@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.17] — 2026-11-10
+
+### Fixed
+- **Grid lines took the Grid series' colour:** 0.1.16 named their token `--ca-grid`, which
+  is the Grid series' own colour. The grid lines' token is now `--ca-gridline`.
+
 ## [0.1.16] — 2026-11-10
 
 ### Changed

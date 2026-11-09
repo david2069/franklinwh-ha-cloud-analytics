@@ -391,3 +391,10 @@ def test_the_chart_is_drawn_like_the_bridges_own(page):
     assert page.locator("svg .fwhca-vgrid").count() >= 3
     dash = page.evaluate("getComputedStyle(document.querySelector('.fwhca-line.c-soc')).strokeDasharray")
     assert dash in ("none", "")
+
+
+def test_grid_lines_do_not_take_the_grid_series_colour(page):
+    # 0.1.16 named the grid-line token --ca-grid, the Grid series' own colour.
+    line = page.evaluate("getComputedStyle(document.querySelector('.fwhca-grid')).stroke")
+    series = page.evaluate("getComputedStyle(document.querySelector('.fwhca-key[data-key=grid] i')).backgroundColor")
+    assert line != series

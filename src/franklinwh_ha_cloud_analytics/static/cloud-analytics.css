@@ -23,7 +23,7 @@
 .fwhca-status.fwhca-err{ color: var(--ca-crit); }
 .fwhca-chart svg{ width: 100%; height: auto; display: block; }
 .fwhca-empty{ padding: 40px 0; text-align: center; color: var(--ca-muted); }
-.fwhca-grid{ stroke: var(--ca-grid, var(--ca-line)); stroke-width: 1; }
+.fwhca-grid{ stroke: var(--ca-gridline, var(--ca-line)); stroke-width: 1; }
 .fwhca-grid.zero{ stroke: var(--ca-muted); }
 .fwhca-ax{ fill: var(--ca-muted); font-size: 11px; }
 .fwhca-line{ fill: none; stroke-width: 1.6; }
