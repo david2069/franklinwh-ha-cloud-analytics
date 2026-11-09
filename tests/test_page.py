@@ -312,3 +312,20 @@ def test_a_host_can_set_the_chart_height_to_match_its_own(browser, base):
         pg.wait_for_selector("#host .fwhca-chart svg")
         assert round(pg.locator("#host .fwhca-chart svg").bounding_box()["height"]) == 380
         ctx.close()
+
+
+def test_a_host_can_own_the_chart_style(page):
+    # Owner, 2026-11-10: Line | Area | Bars at the top of the bridge, beside the time span,
+    # for Local and Cloud at once.
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d);
+        window.h = FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', styleControl: false, style: 'area'}); }""")
+    page.wait_for_selector("#host .fwhca-area")
+    assert page.locator("#host .fwhca-seg").is_hidden()
+    page.evaluate("h.setStyle('bars')")
+    page.wait_for_selector("#host .fwhca-bar-r")
+    assert page.evaluate("h.style()") == "bars"
+    page.evaluate("h.setStyle(null)")                                # back to automatic: a day is lines
+    page.wait_for_selector("#host .fwhca-line")
+    assert page.locator("#host .fwhca-bar-r").count() == 0
+    assert page.evaluate("localStorage.getItem('fwh-cloud-analytics:style')") is None

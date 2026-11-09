@@ -54,6 +54,8 @@ calls `setPeriod(p)` from its picker and remembers the period itself; the panel 
 no picker. `FWHCloudAnalytics.PERIODS` lists the periods as `[value, label]`. The host puts the export buttons
 where its own analytics has them; `exportData` downloads the shown period
 (`fwh-cloud-<period>-<date>.csv`), every series the cloud returned, empty where it has none.
+A host with its own **Line | Area | Bars** passes `{styleControl: false, style: s}` and calls
+`setStyle(s)` (`null` = automatic); `style()` returns the style drawn.
 `{height: 380}` draws the chart that many pixels tall at any width (default 260, 220 on a
 phone), so it can match the host's own chart.
 
