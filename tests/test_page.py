@@ -456,3 +456,13 @@ def test_a_host_can_show_a_custom_range(page):
     page.evaluate("ca.setPeriod('week')")                                 # back to a period
     page.wait_for_function("!document.querySelector('.fwhca-status').textContent.includes('–')")   # no range
     assert page.evaluate("ca.period()") == "week" and page.evaluate("ca.range()") is None
+
+
+def test_a_host_can_mount_on_a_custom_range(page):
+    # the bridge mounts the panel when Cloud is first shown, already on Custom
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d);
+        window.h = FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', periodPicker: false, period: 'custom',
+                                                range: {from: '2026-11-05T22:00', to: '2026-11-06T02:00'}}); }""")
+    page.wait_for_function("document.querySelector('#host .fwhca-status').textContent.includes('22:00')")
+    assert page.evaluate("h.period()") == "custom"

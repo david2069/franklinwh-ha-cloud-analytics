@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.22] — 2026-11-10
+
+### Fixed
+- **Mounting on a custom range**: `mount(el, {period: "custom", range: {from, to}})` read a
+  day instead of the range, since an unknown period fell back to Day (5-min).
+
 ## [0.1.21] — 2026-11-10
 
 ### Added

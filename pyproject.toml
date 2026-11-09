@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "franklinwh-ha-cloud-analytics"
-version = "0.1.21"
+version = "0.1.22"
 description = "The FranklinWH cloud's energy reporting (periods, chart payload, page panel) shared by the FranklinWH bridges"
 readme = "README.md"
 requires-python = ">=3.11"
