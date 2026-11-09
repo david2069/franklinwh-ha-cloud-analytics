@@ -17,7 +17,9 @@
  * the Stack toggle and the date stepping to the host as well. {refreshControl: false} drops
  * the ↻ (the host's own Refresh calls reload()), and {statusBelow: true} puts the status line
  * under the chart. {socAxis: "always"} keeps the SoC % axis (and so the plot's width) for the
- * periods with no SoC.
+ * periods with no SoC. setRange("2026-11-05T22:00", "2026-11-06T02:00") shows a custom
+ * From-To range (?period=custom&from=&to=, franklinwh_ha_cloud_analytics.fetch_range());
+ * setPeriod() goes back to a period.
  */
 (function () {
   "use strict";
@@ -48,6 +50,7 @@
                               stackControl: true, stacked: false, navControl: true, date: null,
                               refreshControl: true, statusBelow: false, socAxis: "auto" }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: o.date || localToday(), data: null, busy: false,
+                 range: o.period === "custom" && o.range ? o.range : null,
                  stacked: o.stackControl ? store.get(KEY_STACK) === "1" : !!o.stacked, detailsOpen: false,
                  style: o.styleControl ? (STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null)
                                        : (STYLES.includes(o.style) ? o.style : null),
@@ -98,7 +101,7 @@
     // setPeriod(p, date): a host changing its span and day together reads once.
     function setPeriod(p, date) {
       if (!PERIODS.some((x) => x[0] === p) || (p === st.period && (!date || date === st.date))) return;
-      st.period = p;
+      st.period = p; st.range = null;
       if (date) st.date = date;
       if (o.periodPicker) store.set(KEY, p);
       load();
@@ -108,6 +111,12 @@
     // A host's own Stack toggle (stackControl: false) and date picker (navControl: false).
     function setStacked(on) { st.stacked = !!on; render(); }
     function setDate(d) { st.date = d || null; load(); }
+    // A host's custom range: site-local "YYYY-MM-DDTHH:MM", the end not included.
+    function setRange(from, to) {
+      if (!from || !to || (st.period === "custom" && st.range && st.range.from === from && st.range.to === to)) return;
+      st.period = "custom"; st.range = { from, to };
+      load();
+    }
     // Details ▾: tick the cloud's other fields to give them a chip (they start off).
     el.addEventListener("change", (e) => {
       const k = e.target.dataset && e.target.dataset.extra;
@@ -122,7 +131,8 @@
 
     async function load(refresh) {
       st.busy = true; render();
-      const q = new URLSearchParams(Object.assign({ period: st.period }, st.date ? { date: st.date } : {},
+      const q = new URLSearchParams(Object.assign({ period: st.period },
+        st.period === "custom" && st.range ? { from: st.range.from, to: st.range.to } : st.date ? { date: st.date } : {},
         refresh ? { refresh: "1" } : {}, typeof o.params === "function" ? o.params() : o.params || {}));
       try {
         const r = await fetch(o.endpoint + (o.endpoint.includes("?") ? "&" : "?") + q);
@@ -154,7 +164,7 @@
       if (st.busy) status.textContent = "Loading from " + o.sourceLabel + "…";
       else if (!d) status.textContent = "";
       else if (d.error) status.textContent = d.error;
-      else status.textContent = "Showing cloud data from " + o.sourceLabel + (life ? "" : " · " + dateText(d.date, FULL)) +
+      else status.textContent = "Showing cloud data from " + o.sourceLabel + (life ? "" : " · " + (d.period === "custom" ? rangeText(d) : dateText(d.date, FULL))) +
         (d.fetched_at ? " · read " + new Date(d.fetched_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "");
       const ok = d && !d.error && !st.busy;
       $(".fwhca-chart").innerHTML = ok ? (d.empty ? '<p class="fwhca-empty">No cloud data for this period.</p>' : chart(d)) : "";
@@ -231,10 +241,18 @@
         g += '<text class="fwhca-ax fwhca-pct" transform="translate(' + (W - 8) + " " + ((T + H - B) / 2) + ') rotate(90)" text-anchor="middle">SoC %</text>';
       }
       const every = Math.ceil(n / (W < 520 ? 4 : 8));
+      let lastDay = null;
       d.labels.forEach((t, i) => {
         if (i % every) return;
+        // a custom range in 5-minute or hourly slots: the date where the day changes
+        let text = short(t, d);
+        if (d.period === "custom" && (d.res === "5min" || d.res === "hour")) {
+          const day = String(t).slice(0, 10);
+          if (day !== lastDay) text = dateText(day, DAY) + " " + text;
+          lastDay = day;
+        }
         g += '<line class="fwhca-grid fwhca-vgrid" x1="' + x(i) + '" x2="' + x(i) + '" y1="' + T + '" y2="' + (H - B) + '"/>' +
-             '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(short(t, d.period)) + "</text>";
+             '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(text) + "</text>";
       });
       geo = { W, L, cw: (W - L - R) / Math.max(n, 1), T, H: H - B, n };
       if (sty !== "bars") {
@@ -341,15 +359,16 @@
     function exportData(fmt) {
       const d = st.data;
       if (!d || d.error || st.busy) return false;
-      const name = "fwh-cloud-" + d.period + (d.period === "lifetime" ? "" : "-" + d.date) + "." + fmt;
+      const name = "fwh-cloud-" + d.period + (d.period === "lifetime" ? "" : d.period === "custom"
+        ? "-" + d.from.replace(":", "") + "-" + d.to.replace(":", "") : "-" + d.date) + "." + fmt;
       let body, type;
       if (fmt === "json") {
-        body = JSON.stringify({ source: d.source, period: d.period, date: d.date, unit: d.unit, note: d.note,
+        body = JSON.stringify({ source: d.source, period: d.period, date: d.date, from: d.from, to: d.to, unit: d.unit, note: d.note,
           labels: d.labels, series: d.series, flows: d.flows || null, raw: d.raw || {}, fetched_at: d.fetched_at || null }, null, 2);
         type = "application/json";
       } else {
         const cell = (v) => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-        const head = [d.period === "day5" || d.period === "dayhour" ? "time" : "date"]
+        const head = [d.period === "day5" || d.period === "dayhour" || d.res === "5min" || d.res === "hour" ? "time" : "date"]
           .concat(d.series.map((s) => s.label + " (" + (s.unit || d.unit) + ")"));
         body = [head].concat(d.labels.map((t, i) => [t].concat(d.series.map((s) => s.values[i]))))
           .map((r) => r.map(cell).join(",")).join("\n") + "\n";
@@ -364,7 +383,7 @@
     }
 
     return { reload: () => load(true), exportData, setPeriod, period: () => st.period, setStyle,
-             setStacked, setDate, date: () => st.date, showAt,
+             setStacked, setDate, date: () => st.date, showAt, setRange, range: () => st.range,
              style: () => (st.data && !st.data.error ? style(st.data) : st.style) };
   }
 
@@ -379,18 +398,28 @@
   }
   const DAY = { day: "numeric", month: "short" }, FULL = { day: "numeric", month: "short", year: "numeric" };
   // the axis: times stay 24-hour, as the site's own clock
-  function short(t, period) {
+  function short(t, d) {
     t = String(t);
+    const period = d.period === "custom" ? { "5min": "day5", hour: "day5", day: "month", month: "custom-month" }[d.res] : d.period;
     if (period === "day5") return t.split(" ").pop().slice(0, 5);
     if (period === "week" || period === "month") return dateText(t, DAY);
     if (period === "year") return dateText(t, { month: "short" });
+    if (period === "custom-month") return dateText(t, { month: "short", year: "2-digit" });
     return t;
+  }
+  // a custom range in the status line: "5 Nov 2026, 22:00 – 6 Nov 2026, 02:00"
+  function rangeText(d) {
+    const one = (v) => dateText(v.slice(0, 10), FULL) + ", " + v.slice(11, 16);
+    return one(d.from) + " – " + one(d.to);
   }
   // the readout's heading: the whole date
   function long(t, d) {
     t = String(t);
     const wd = Object.assign({ weekday: "short" }, FULL);
-    if (d.period === "day5") { const p = t.split(" "); return p.length > 1 ? dateText(p[0], wd) + " " + p[1].slice(0, 5) : t; }
+    if (d.period === "day5" || (d.period === "custom" && (d.res === "5min" || d.res === "hour"))) {
+      const p = t.split(" "); return p.length > 1 ? dateText(p[0], wd) + " " + p[1].slice(0, 5) : t;
+    }
+    if (d.period === "custom") return d.res === "day" ? dateText(t, wd) : dateText(t, { month: "long", year: "numeric" });
     if (d.period === "dayhour") return dateText(d.date, wd) + " " + t;
     if (d.period === "week" || d.period === "month") return dateText(t, wd);
     if (d.period === "year") return dateText(t, { month: "long", year: "numeric" });
