@@ -48,6 +48,10 @@ then:
                                     params: () => ({gateway: currentGatewayId})});</script>
 ```
 
+`mount()` returns `{reload(), exportData("csv" | "json")}`. The host puts the export buttons
+where its own analytics has them; `exportData` downloads the shown period
+(`fwh-cloud-<period>-<date>.csv`), every series the cloud returned, empty where it has none.
+
 `python -m franklinwh_ha_cloud_analytics.demo` serves the panel over made-up data.
 
 ## Periods

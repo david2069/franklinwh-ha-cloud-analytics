@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-11-09
+
+### Added
+- **CSV and JSON export:** `mount()` returns `exportData("csv" | "json")`, which downloads
+  the shown period as `fwh-cloud-<period>-<date>.csv` / `.json`: every series the cloud
+  returned (a chip only hides one on the chart), labels as the cloud gave them, a missing
+  value left empty (`null` in JSON). The host places the buttons, next to its own export.
+
 ## [0.1.4] — 2026-11-09
 
 ### Fixed
