@@ -99,9 +99,9 @@ class _Client:
         return _buckets(labels, self.today)
 
 
-def custom(start: str, end: str, today: date) -> dict:
+def custom(start: str, end: str, today: date, res: str | None = None) -> dict:
     return asyncio.run(fetch_range(_Client(today), datetime.fromisoformat(start),
-                                   datetime.fromisoformat(end), today=today))
+                                   datetime.fromisoformat(end), today=today, res=res))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -124,7 +124,7 @@ class Handler(BaseHTTPRequestHandler):
             q = {k: v[0] for k, v in parse_qs(u.query).items()}
             try:
                 if q.get("period") == "custom":
-                    body = custom(q.get("from", ""), q.get("to", ""), self.today)
+                    body = custom(q.get("from", ""), q.get("to", ""), self.today, q.get("res"))
                 else:
                     body = payload(q.get("period", "day5"),
                                    date.fromisoformat(q.get("date") or self.today.isoformat()),

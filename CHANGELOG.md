@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.24] — 2026-11-10
+
+### Added
+- **A range's slots on request**: `fetch_range(…, res="hour")` and the panel's
+  `setRange(from, to, "hour")` (`?res=`) keep hourly slots on a short range ("5min", "hour",
+  "day" or "month"); by default the range's length still picks them.
+
 ## [0.1.23] — 2026-11-10
 
 ### Fixed

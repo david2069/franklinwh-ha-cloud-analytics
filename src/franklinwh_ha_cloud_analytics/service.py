@@ -67,15 +67,24 @@ def range_res(start: datetime, end: datetime) -> tuple[str, str]:
     return "month", "year"
 
 
+#: The period read per piece for each slot.
+RES_PERIOD = {"5min": "day5", "hour": "dayhour", "day": "month", "month": "year"}
+
+
 async def fetch_range(client, start: datetime, end: datetime, *, today: date,
-                      cache: Cache | None = None, key: str = "", now: float | None = None) -> dict:
+                      cache: Cache | None = None, key: str = "", now: float | None = None,
+                      res: str | None = None) -> dict:
     """The payload for the site-local range ``start`` to ``end`` (end not included): the
     replies for each day, month or year in it (none after ``today``, each cached as
-    :func:`fetch` caches it), joined, trimmed to the range and built as one period."""
+    :func:`fetch` caches it), joined, trimmed to the range and built as one period.
+    ``res`` ("5min", "hour", "day", "month") asks for those slots; by default the range's
+    length picks them (:func:`range_res`)."""
     if end <= start:
         raise ValueError("the range must end after it starts")
+    if res is not None and res not in RES_PERIOD:
+        raise ValueError(f"res is one of {', '.join(RES_PERIOD)}")
     now = time.time() if now is None else now
-    res, period = range_res(start, end)
+    res, period = (res, RES_PERIOD[res]) if res else range_res(start, end)
     pieces, on = [], start.date()
     while on <= (end - timedelta(microseconds=1)).date() and on <= today:
         p = resolve(period, on, today)
