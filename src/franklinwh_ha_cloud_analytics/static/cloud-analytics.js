@@ -88,9 +88,11 @@
     });
     const periodIn = $(".fwhca-period");
     if (periodIn) periodIn.addEventListener("change", () => { st.period = periodIn.value; store.set(KEY, st.period); load(); });
-    function setPeriod(p) {
-      if (!PERIODS.some((x) => x[0] === p) || p === st.period) return;
+    // setPeriod(p, date): a host changing its span and day together reads once.
+    function setPeriod(p, date) {
+      if (!PERIODS.some((x) => x[0] === p) || (p === st.period && (!date || date === st.date))) return;
       st.period = p;
+      if (date) st.date = date;
       if (o.periodPicker) store.set(KEY, p);
       load();
     }

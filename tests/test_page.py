@@ -351,3 +351,16 @@ def test_a_host_can_own_the_chart_style(page):
     page.wait_for_selector("#host .fwhca-line")
     assert page.locator("#host .fwhca-bar-r").count() == 0
     assert page.evaluate("localStorage.getItem('fwh-cloud-analytics:style')") is None
+
+
+def test_a_host_can_set_the_period_and_its_date_in_one_load(page):
+    # One read, not two racing ones, when the host's span and day change together.
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d); window.calls = 0;
+        const f = window.fetch; window.fetch = (...a) => { if (String(a[0]).includes('api/cloud')) window.calls++; return f(...a); };
+        window.h = FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', navControl: false, period: 'day5'}); }""")
+    page.wait_for_selector("#host .fwhca-line")
+    page.evaluate("window.calls = 0; h.setPeriod('month', '2026-10-01')")
+    page.wait_for_selector("#host .fwhca-bar-r")
+    assert page.evaluate("h.period()") == "month" and page.evaluate("h.date()") == "2026-10-01"
+    assert page.evaluate("window.calls") == 1

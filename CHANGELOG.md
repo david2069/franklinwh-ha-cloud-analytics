@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.14] — 2026-11-10
+
+### Added
+- **`setPeriod(p, date)`:** a host that changes its span and day together reads once,
+  rather than twice with the replies racing.
+
 ## [0.1.13] — 2026-11-10
 
 ### Added
