@@ -331,8 +331,9 @@ def test_a_host_can_set_the_chart_height_to_match_its_own(browser, base):
         pg.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
             document.body.appendChild(d);
             FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', height: 380}); }""")
-        pg.wait_for_selector("#host .fwhca-chart svg")
-        assert round(pg.locator("#host .fwhca-chart svg").bounding_box()["height"]) == 380
+        # the chart may be redrawn (resize) right after it first appears: wait for the height
+        pg.wait_for_function("""() => { const s = document.querySelector('#host .fwhca-chart svg');
+            return s && Math.round(s.getBoundingClientRect().height) === 380; }""", timeout=5000)
         ctx.close()
 
 
@@ -364,3 +365,17 @@ def test_a_host_can_set_the_period_and_its_date_in_one_load(page):
     page.wait_for_selector("#host .fwhca-bar-r")
     assert page.evaluate("h.period()") == "month" and page.evaluate("h.date()") == "2026-10-01"
     assert page.evaluate("window.calls") == 1
+
+
+def test_the_details_menu_stays_on_a_phone_screen(browser, base):
+    # Owner's phone, 2026-11-10: the menu ran off the left edge.
+    for width in range(320, 560, 20):                  # wherever the button lands in its row
+        ctx = browser.new_context(viewport={"width": width, "height": 800})
+        ctx.clock.set_system_time(NOON)
+        pg = ctx.new_page()
+        pg.goto(base + "/")
+        pg.wait_for_selector(".fwhca-chart svg")
+        pg.click("[data-details]")
+        r = pg.locator(".fwhca-menu").bounding_box()
+        assert r["x"] >= 0 and r["x"] + r["width"] <= width, (width, r)
+        ctx.close()

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.15] — 2026-11-10
+
+### Fixed
+- **The Details menu stays on screen:** on a phone it could open past the left edge; it now
+  shifts to fit inside the window, whichever side of the row its button is on.
+
 ## [0.1.14] — 2026-11-10
 
 ### Added
