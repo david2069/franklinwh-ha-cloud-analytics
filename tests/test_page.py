@@ -256,7 +256,7 @@ def test_soc_is_drawn_on_a_percent_axis_and_read_out_in_percent(page):
     # Owner, 2026-11-10: SoC as Local shows it, right-hand 0-100 % axis.
     assert page.locator(".fwhca-line.c-soc").count() == 1
     assert page.locator(".fwhca-key[data-key=soc]").count() == 1
-    assert "%" in [t.strip() for t in page.locator("svg text.fwhca-pct").all_text_contents()]
+    assert "SoC %" in [t.strip() for t in page.locator("svg text.fwhca-pct").all_text_contents()]
     box = page.locator(".fwhca-chart svg").bounding_box()
     page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
     assert re.search(r"State of charge: \d+(\.\d+)? %", page.locator(".fwhca-tip").inner_text())
@@ -379,3 +379,15 @@ def test_the_details_menu_stays_on_a_phone_screen(browser, base):
         r = pg.locator(".fwhca-menu").bounding_box()
         assert r["x"] >= 0 and r["x"] + r["width"] <= width, (width, r)
         ctx.close()
+
+
+def test_the_chart_is_drawn_like_the_bridges_own(page):
+    # Owner, 2026-11-10: "the diagrams should look the same": a rotated unit title on the
+    # left, SoC % on the right in tens, a solid SoC line, and vertical grid lines.
+    unit = page.locator("svg text.fwhca-unit")
+    assert unit.text_content() == "kW" and "rotate(-90)" in unit.get_attribute("transform")
+    pct = [t.strip() for t in page.locator("svg text.fwhca-pct").all_text_contents()]
+    assert {"0", "100"} <= set(pct) and ("10" in pct or "20" in pct)
+    assert page.locator("svg .fwhca-vgrid").count() >= 3
+    dash = page.evaluate("getComputedStyle(document.querySelector('.fwhca-line.c-soc')).strokeDasharray")
+    assert dash in ("none", "")
