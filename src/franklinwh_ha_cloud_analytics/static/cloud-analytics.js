@@ -211,7 +211,9 @@
       const P = shown(d).filter((s) => s.axis === "pct"),
             S = shown(d).filter((s) => s.axis !== "pct" && !(s.extra && st.stacked && style(d) === "bars")),
             n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
-            H = o.height || (W < 520 ? 220 : 260), soc = P.length || o.socAxis === "always", L = 52, R = soc ? 52 : 8, T = 16, B = 28;
+            H = o.height || (W < 520 ? 220 : 260), soc = P.length || o.socAxis === "always", L = 52, R = soc ? 52 : 8, T = 16,
+            dated = d.period === "custom" && (d.res === "5min" || d.res === "hour"),   // a date line under the times
+            B = dated ? 40 : 28;
       const sty = style(d), stack = st.stacked && sty === "bars";
       // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
       // it is drawn below (its tooltip keeps the real value).
@@ -244,15 +246,17 @@
       let lastDay = null;
       d.labels.forEach((t, i) => {
         if (i % every) return;
-        // a custom range in 5-minute or hourly slots: the date where the day changes
-        let text = short(t, d);
-        if (d.period === "custom" && (d.res === "5min" || d.res === "hour")) {
+        // a custom range in 5-minute or hourly slots: the time, and under it the date where
+        // the day changes (as the bridges' own axis)
+        let text = esc(short(t, d)), y0 = H - 8;
+        if (dated) {
           const day = String(t).slice(0, 10);
-          if (day !== lastDay) text = dateText(day, DAY) + " " + text;
+          y0 = H - 22;
+          if (day !== lastDay) text = '<tspan x="' + x(i) + '">' + text + '</tspan><tspan x="' + x(i) + '" dy="14">' + esc(dateText(day, DAY)) + "</tspan>";
           lastDay = day;
         }
         g += '<line class="fwhca-grid fwhca-vgrid" x1="' + x(i) + '" x2="' + x(i) + '" y1="' + T + '" y2="' + (H - B) + '"/>' +
-             '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(text) + "</text>";
+             '<text class="fwhca-ax" x="' + x(i) + '" y="' + y0 + '" text-anchor="middle">' + text + "</text>";
       });
       geo = { W, L, cw: (W - L - R) / Math.max(n, 1), T, H: H - B, n };
       if (sty !== "bars") {
