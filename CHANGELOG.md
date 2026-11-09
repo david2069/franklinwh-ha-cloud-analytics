@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.20] — 2026-11-10
+
+### Added
+- **`showAt("HH:MM")`** opens the readout at the slot nearest that time on the Day views,
+  again after each load until `showAt(null)`, for a host's own time picker.
+
 ## [0.1.19] — 2026-11-10
 
 ### Added

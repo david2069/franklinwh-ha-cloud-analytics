@@ -423,3 +423,18 @@ def test_a_host_can_keep_the_soc_axis_for_every_period(page):
     pct = [t.strip() for t in page.locator("#host svg text.fwhca-pct").all_text_contents()]
     assert "SoC %" in pct and "100" in pct
     assert page.locator("#host .fwhca-line.c-soc").count() == 0
+
+
+def test_a_host_can_open_the_readout_at_a_time(page):
+    # Owner, 2026-11-10: the bridge's date picker takes a time on the Day views and the chart
+    # opens with the readout at that time, snapped to the nearest slot.
+    page.evaluate("ca.showAt('14:32')")                               # Day (5-min): 14:30
+    tip = page.locator(".fwhca-tip")
+    tip.wait_for(state="visible")
+    assert "14:30" in tip.inner_text() and "Solar" in tip.inner_text()
+    assert float(page.get_attribute(".fwhca-guide", "x1")) > 0
+    page.select_option(".fwhca-period", "dayhour")                    # it stays after a load
+    page.wait_for_selector(".fwhca-bar-r")
+    page.wait_for_function("document.querySelector('.fwhca-tip').textContent.includes('15:00')")
+    page.evaluate("ca.showAt(null)")
+    assert tip.is_hidden()

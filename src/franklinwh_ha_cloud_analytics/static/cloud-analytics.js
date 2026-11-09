@@ -130,7 +130,7 @@
         st.data = r.ok && !j.error ? j : { error: j.error || j.detail || "HTTP " + r.status };
         if (!st.data.error) st.date = st.data.date;
       } catch (e) { st.data = { error: "Could not reach the bridge: " + e.message }; }
-      st.busy = false; render();
+      st.busy = false; render(); applyAt();
     }
 
     function render() {
@@ -298,14 +298,32 @@
       const r = svg.getBoundingClientRect(), k = geo.W / r.width;
       const i = Math.floor(((ev.clientX - r.left) * k - geo.L) / geo.cw);
       if (i < 0 || i >= geo.n) { hideTip(); return; }
+      tipAt(i, ev.clientX, ev.clientY);
+    }
+    function tipAt(i, cx, cy) {
+      const d = st.data, svg = plot.querySelector("svg");
       const gx = (geo.L + geo.cw * (i + 0.5)).toFixed(1), guide = svg.querySelector(".fwhca-guide");
       guide.setAttribute("x1", gx); guide.setAttribute("x2", gx);
       tip.innerHTML = '<b>' + esc(long(d.labels[i], d)) + "</b>" + shown(d).map((s) => '<span><i class="c-' + esc(s.key) + '"></i>' +
         esc(s.label) + ": " + esc(fmt(s.values[i], s.unit || d.unit)) + "</span>").join("");
       tip.hidden = false;
-      const pr = plot.getBoundingClientRect(), px = ev.clientX - pr.left, w = tip.offsetWidth;
+      const pr = plot.getBoundingClientRect(), px = cx - pr.left, w = tip.offsetWidth;
       tip.style.left = Math.max(0, Math.min(pr.width - w, px + (px > pr.width / 2 ? -w - 12 : 12))) + "px";
-      tip.style.top = Math.max(0, ev.clientY - pr.top - tip.offsetHeight / 2) + "px";
+      tip.style.top = Math.max(0, cy - pr.top - tip.offsetHeight / 2) + "px";
+    }
+    // A host's own time picker (Day views): the readout at the slot nearest "HH:MM", again
+    // after every load until showAt(null).
+    function showAt(hhmm) { st.at = hhmm || null; if (st.at) applyAt(); else hideTip(); }
+    function applyAt() {
+      const d = st.data, svg = plot.querySelector("svg");
+      if (!st.at || !geo || !svg || !d || d.error || d.empty || !(d.period === "day5" || d.period === "dayhour")) return;
+      const mins = (t) => { const m = /(\d\d):(\d\d)/.exec(String(t)); return m ? +m[1] * 60 + +m[2] : null; };
+      const want = mins(st.at);
+      let best = -1, gap = Infinity;
+      d.labels.forEach((t, i) => { const m = mins(t); if (m != null && Math.abs(m - want) < gap) { gap = Math.abs(m - want); best = i; } });
+      if (best < 0) return;
+      const r = svg.getBoundingClientRect();
+      tipAt(best, r.left + (geo.L + geo.cw * (best + 0.5)) * r.width / geo.W, r.top + r.height / 3);
     }
     plot.addEventListener("pointermove", showTip);
     plot.addEventListener("pointerdown", showTip);
@@ -346,7 +364,7 @@
     }
 
     return { reload: () => load(true), exportData, setPeriod, period: () => st.period, setStyle,
-             setStacked, setDate, date: () => st.date,
+             setStacked, setDate, date: () => st.date, showAt,
              style: () => (st.data && !st.data.error ? style(st.data) : st.style) };
   }
 
