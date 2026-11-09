@@ -6,6 +6,10 @@
  * and returns franklinwh_ha_cloud_analytics.build()'s payload, or {error: "..."}. Dates
  * and their steps come from the payload (the site's own calendar), never from this
  * browser's clock in UTC.
+ *
+ * A host with its own period picker (one picker for its local and cloud views) passes
+ * {periodPicker: false, period: "week"} and calls setPeriod() from it; the panel then draws
+ * no picker of its own and leaves remembering the period to the host.
  */
 (function () {
   "use strict";
@@ -29,16 +33,17 @@
   const fmt = (v, unit) => v == null ? "no data" : (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)) + " " + unit;
 
   function mount(el, options) {
-    const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud" }, options || {});
-    const st = { period: store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
+    const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
+                              periodPicker: true, period: null }, options || {});
+    const st = { period: o.period || store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
                  stacked: store.get(KEY_STACK) === "1", style: STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null,
                  hidden: (() => { try { const h = JSON.parse(store.get(KEY_HIDDEN) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } })() };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
     el.innerHTML =
-      '<div class="fwhca-bar"><select class="fwhca-period" aria-label="Period">' +
+      '<div class="fwhca-bar">' + (o.periodPicker ? '<select class="fwhca-period" aria-label="Period">' +
       PERIODS.map((p) => '<option value="' + p[0] + '">' + p[1] + "</option>").join("") +
-      '</select><div class="fwhca-nav"><button type="button" data-step="prev" aria-label="Previous period">‹</button>' +
+      "</select>" : "<span></span>") + '<div class="fwhca-nav"><button type="button" data-step="prev" aria-label="Previous period">‹</button>' +
       '<input type="date" aria-label="Date"><button type="button" data-step="next" aria-label="Next period">›</button>' +
       '<button type="button" data-today title="Back to today">Today</button>' +
       '</div></div>' +
@@ -70,7 +75,13 @@
       else if ("stack" in b.dataset) { st.stacked = !st.stacked; store.set(KEY_STACK, st.stacked ? "1" : "0"); render(); }
     });
     const periodIn = $(".fwhca-period");
-    periodIn.addEventListener("change", () => { st.period = periodIn.value; store.set(KEY, st.period); load(); });
+    if (periodIn) periodIn.addEventListener("change", () => { st.period = periodIn.value; store.set(KEY, st.period); load(); });
+    function setPeriod(p) {
+      if (!PERIODS.some((x) => x[0] === p) || p === st.period) return;
+      st.period = p;
+      if (o.periodPicker) store.set(KEY, p);
+      load();
+    }
     dateIn.addEventListener("change", () => { if (dateIn.value) { st.date = dateIn.value; load(); } });
 
     async function load(refresh) {
@@ -88,8 +99,7 @@
 
     function render() {
       const d = st.data;
-      periodIn.value = st.period;
-      periodIn.disabled = st.busy;
+      if (periodIn) { periodIn.value = st.period; periodIn.disabled = st.busy; }
       const life = st.period === "lifetime";
       $(".fwhca-nav").hidden = life;
       dateIn.value = st.date || "";
@@ -265,7 +275,7 @@
       return true;
     }
 
-    return { reload: () => load(true), exportData };
+    return { reload: () => load(true), exportData, setPeriod, period: () => st.period };
   }
 
   function nice(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const m = x / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
@@ -297,5 +307,5 @@
     return t;
   }
 
-  window.FWHCloudAnalytics = { mount };
+  window.FWHCloudAnalytics = { mount, PERIODS: PERIODS.map((p) => p.slice()) };
 })();

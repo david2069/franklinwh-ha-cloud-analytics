@@ -247,3 +247,19 @@ def test_exports_the_shown_period_as_csv_and_json(page, tmp_path):
     body = json.load(open(dl.value.path(), encoding="utf-8"))
     assert dl.value.suggested_filename == "fwh-cloud-month-2026-11-01.json"
     assert body["period"] == "month" and body["unit"] == "kWh" and "solar" in [s["key"] for s in body["series"]]
+
+
+def test_a_host_can_own_the_period_picker(page):
+    # Owner, 2026-11-09: one period picker at the top of the bridge for Local and Cloud.
+    assert page.evaluate("FWHCloudAnalytics.PERIODS.map(p => p[0]).join()") == \
+        "day5,dayhour,week,month,year,lifetime"
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d);
+        window.h = FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', periodPicker: false, period: 'month'}); }""")
+    page.wait_for_selector("#host .fwhca-bar-r")
+    assert page.locator("#host .fwhca-period").count() == 0
+    assert page.input_value("#host input[type=date]") == "2026-11-01"
+    page.evaluate("h.setPeriod('week')")
+    page.wait_for_function("document.querySelector('#host input[type=date]').value === '2026-10-26'")   # the week of 1 Nov
+    assert page.evaluate("h.period()") == "week"
+    assert page.evaluate("localStorage.getItem('fwh-cloud-analytics:period')") is None

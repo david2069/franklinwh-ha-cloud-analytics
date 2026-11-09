@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.1.6] — 2026-11-09
+
+### Added
+- **Host-owned period picker:** `mount(el, {periodPicker: false, period: "week"})` draws no
+  picker of its own; the host calls `setPeriod()` from its own (one picker for a bridge's
+  local and cloud views) and remembers the period itself. `period()` returns the shown one
+  and `FWHCloudAnalytics.PERIODS` lists them.
+
 ## [0.1.5] — 2026-11-09
 
 ### Added
