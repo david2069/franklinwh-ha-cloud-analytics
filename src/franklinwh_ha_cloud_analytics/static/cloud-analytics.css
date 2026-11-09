@@ -38,7 +38,15 @@
 .c-battery{ --c: var(--ca-battery); } .c-battery_discharge{ --c: var(--ca-battery_discharge); } .c-battery_charge{ --c: var(--ca-battery_charge); }
 .c-soc{ --c: var(--ca-soc); } .fwhca-line.c-soc{ stroke-dasharray: 4 3; }
 .c-grid{ --c: var(--ca-grid); } .c-grid_import{ --c: var(--ca-grid_import); } .c-grid_export{ --c: var(--ca-grid_export); }
+/* The cloud's other fields (#13) take their source's colour, dashed or lighter. */
+.c-solar_to_home, .c-solar_to_grid, .c-solar_to_battery, .c-home_from_solar, .c-battery_from_solar, .c-grid_export_from_solar{ --c: var(--ca-solar); }
+.c-grid_to_home, .c-grid_to_battery, .c-home_from_grid, .c-battery_from_grid{ --c: var(--ca-grid_import); }
+.c-battery_to_home, .c-battery_to_grid, .c-home_from_battery, .c-grid_export_from_battery{ --c: var(--ca-battery); }
+.c-generator_to_home, .c-generator_to_battery, .c-home_from_generator, .c-battery_from_generator{ --c: var(--ca-generator); }
+.c-v2l, .c-v2l_to_battery, .c-v2l_to_home{ --c: var(--ca-home); }
 .fwhca-line[class*="c-"]{ stroke: var(--c); }
+.fwhca-line.fwhca-x{ stroke-dasharray: 2 3; }
+.fwhca-bar-r.fwhca-x{ fill-opacity: .5; }
 .fwhca-area[class*="c-"]{ fill: var(--c); fill-opacity: .18; stroke: none; }
 .fwhca-bar-r[class*="c-"], .fwhca-key i[class*="c-"]{ fill: var(--c); background: var(--c); }
 

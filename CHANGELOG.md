@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.1.10] — 2026-11-10
+
+### Added
+- **The cloud's other fields as chips** (#13): every other field with data for the shown
+  period gets a chip that starts **off** and is remembered once switched on. kWh periods:
+  home from solar, grid and battery; battery charged from solar and grid; export from solar
+  and battery. Day views: each 5-minute flow (solar → home, grid → battery, …), in kW, or
+  kWh per hour for Day (hourly). They take their source's colour, dashed or lighter, and stay
+  out of stacked bars (they are parts of the balance). Fields empty for the period (V2L, the
+  solar sub-meters) get no chip; the payload's new `raw` keeps every array the cloud
+  returned, and the JSON export includes it.
+
 ## [0.1.9] — 2026-11-10
 
 ### Added

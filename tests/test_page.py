@@ -185,6 +185,18 @@ def test_series_chips_show_and_hide_and_are_remembered(page):
     assert page.locator(".fwhca-line.c-solar").count() == 0
 
 
+def test_the_clouds_other_fields_are_chips_that_start_off(page):
+    # Owner, 2026-11-10 (#13): every field with data gets a chip, off by default.
+    chip = page.locator(".fwhca-key[data-key=solar_to_battery]")
+    assert chip.get_attribute("aria-pressed") == "false"
+    assert page.locator(".fwhca-line.c-solar_to_battery").count() == 0
+    chip.click()
+    assert page.locator(".fwhca-line.c-solar_to_battery").count() == 1
+    page.reload()
+    page.wait_for_selector(".fwhca-chart svg")
+    assert page.locator(".fwhca-key[data-key=solar_to_battery]").get_attribute("aria-pressed") == "true"
+
+
 def test_every_period_can_be_bars_line_or_area_and_the_choice_is_remembered(page):
     # Owner, 2026-11-09: switch back to line and area from the bar charts.
     line, area, bars = (page.locator(f"[data-style={k}]") for k in ("line", "area", "bars"))

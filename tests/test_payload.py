@@ -62,6 +62,33 @@ def test_kwh_period_is_bars_with_signs_nulls_and_evidence():
     assert p["date"] == "2026-11-01" and p["nav"] == {"prev": "2026-10-01", "next": None}
 
 
+# ── the cloud's other fields (#13): off-by-default chips; empty ones only in the export ──
+MONTH_X = {**MONTH, "kwhSolarLoadArray": [15.0, None], "soChBatArray": [9.0, None],
+           "soOutGridArray": [6.0, None], "kwhV2lArray": [0.0, None], "mpptWhArray": [None, None]}
+
+
+def test_other_fields_with_data_are_extra_series_and_empty_ones_only_raw():
+    p = ca.build(ca.resolve("month", date(2026, 11, 1), TODAY), MONTH_X)
+    s = {x["key"]: x for x in p["series"]}
+    assert s["home_from_solar"]["values"] == [15.0, None] and s["home_from_solar"]["extra"] is True
+    assert s["battery_from_solar"]["values"] == [-9.0, None]            # into the battery −
+    assert s["grid_export_from_solar"]["values"] == [-6.0, None]        # export −
+    assert "extra" not in s["home"]
+    assert "v2l" not in s and "pv_mppt" not in s                        # all 0 / null
+    assert p["raw"]["kwhV2lArray"] == [0.0, None] and p["raw"]["mpptWhArray"] == [None, None]
+    assert "deviceTimeArray" not in p["raw"]
+
+
+def test_the_day_views_offer_each_5_minute_flow():
+    p = ca.build(ca.resolve("day5", date(2026, 11, 5), TODAY), DAY)
+    s = {x["key"]: x for x in p["series"]}
+    assert s["solar_to_battery"]["values"][:2] == [0.5, 0.0] and s["solar_to_battery"]["extra"] is True
+    assert s["grid_to_battery"]["values"][1] == 1.0
+    h = ca.build(ca.resolve("dayhour", date(2026, 11, 5), TODAY), DAY)
+    hs = {x["key"]: x for x in h["series"]}
+    assert hs["grid_to_battery"]["values"][0] == pytest.approx(1.0 / 12, abs=1e-4)  # kWh in the hour
+
+
 def test_a_period_with_no_data_says_empty():
     p = ca.build(ca.resolve("year", date(2027, 1, 1), date(2027, 1, 1)), {})
     assert p["empty"] is True and p["labels"] == []
@@ -79,7 +106,7 @@ def test_day_5min_lines_are_derived_kw_and_null_when_a_part_is_null():
     p = ca.build(ca.resolve("day5", date(2026, 11, 5), TODAY), DAY)
     assert p["chart"] == "line" and p["unit"] == "kW"
     s = {x["key"]: x for x in p["series"]}
-    assert set(s) == {"home", "solar", "battery", "grid", "soc"}
+    assert {k for k, x in s.items() if not x.get("extra")} == {"home", "solar", "battery", "grid", "soc"}
     assert s["home"]["values"][:2] == [1.0, 0.2]
     assert s["solar"]["values"][:2] == [2.0, 0.0]
     assert s["battery"]["values"][:2] == [-0.5, -1.0]            # charging −
