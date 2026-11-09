@@ -466,3 +466,14 @@ def test_a_host_can_mount_on_a_custom_range(page):
                                                 range: {from: '2026-11-05T22:00', to: '2026-11-06T02:00'}}); }""")
     page.wait_for_function("document.querySelector('#host .fwhca-status').textContent.includes('22:00')")
     assert page.evaluate("h.period()") == "custom"
+
+
+def test_a_ranges_dates_sit_under_the_times(page):
+    # the date and time on one line ran into the next tick; as the bridge's Local axis, the
+    # date goes on a second line where the day changes
+    page.evaluate("ca.setRange('2026-11-03T06:00', '2026-11-08T10:00')")    # hourly
+    page.wait_for_selector("svg text.fwhca-ax tspan")
+    two = page.locator("svg text.fwhca-ax:has(tspan)")
+    assert two.count() >= 2
+    first = two.first.locator("tspan")
+    assert first.nth(0).text_content() == "06:00" and re.search(r"3 Nov|Nov 3", first.nth(1).text_content())

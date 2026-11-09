@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.23] — 2026-11-10
+
+### Fixed
+- **A range's axis**: in 5-minute and hourly ranges the date went before the time on one
+  line and ran into the next label; it now sits on a second line under the time where the
+  day changes, as the bridges' own axis does.
+
 ## [0.1.22] — 2026-11-10
 
 ### Fixed
