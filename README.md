@@ -61,8 +61,8 @@ where its own analytics has them; `exportData` downloads the shown period
 
 | Period | Library call | Chart |
 |---|---|---|
-| Day (5-min) | `get_power_by_day(day)` | lines, kW |
-| Day (hourly) | `get_power_by_day(day)`, added up per hour | bars, kWh |
+| Day (5-min) | `get_power_by_day(day)` | lines, kW, plus SoC % |
+| Day (hourly) | `get_power_by_day(day)`, added up per hour | bars, kWh, plus SoC % (hourly mean) |
 | Week | `get_power_details(2, its Monday)` | bars per day, kWh |
 | Month | `get_power_details(3, the 1st)` | bars per day, kWh |
 | Year | `get_power_details(4, 1 January)` | bars per month, kWh |
@@ -72,7 +72,9 @@ A Day request to `get_power_details` returns a single bucket, so both Day views 
 5-minute power. There, home, battery and grid are sums of the cloud's directional flows
 (solar → home, grid → battery, …), so they're marked derived (≈). Every series carries
 the weakest evidence rating of the fields it uses (franklinwh-cloud's field dictionary);
-INFERRED ones are labelled. No data stays null, never 0. Signs: battery discharge +,
+INFERRED ones are labelled. Both Day views also draw the battery's state of charge
+(`socArray`) as a dashed line on its own 0–100 % axis at the right; the cloud's Week to
+Lifetime totals have no SoC. No data stays null, never 0. Signs: battery discharge +,
 charge −; grid import +, export −.
 
 Caching: a period that today falls in is kept for 5 minutes, a finished one for 6 hours.

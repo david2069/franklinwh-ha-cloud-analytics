@@ -72,14 +72,14 @@ DAY = {"deviceTimeArray": ["2026-11-05 00:00", "2026-11-05 00:05", "2026-11-05 0
        "powerSolarHomeArray": [1.0, 0.0, None], "powerSolarGirdArray": [0.5, 0.0, 0.0],
        "powerSolarFhpArray": [0.5, 0.0, 0.0], "powerGirdHomeArray": [0.0, 0.2, 0.0],
        "powerGirdFhpArray": [0.0, 1.0, 0.0], "powerFhpHomeArray": [0.0, 0.0, 0.6],
-       "powerFhpGirdArray": [0.0, 0.0, 0.0]}
+       "powerFhpGirdArray": [0.0, 0.0, 0.0], "socArray": [40.0, 42.0, None]}
 
 
 def test_day_5min_lines_are_derived_kw_and_null_when_a_part_is_null():
     p = ca.build(ca.resolve("day5", date(2026, 11, 5), TODAY), DAY)
     assert p["chart"] == "line" and p["unit"] == "kW"
     s = {x["key"]: x for x in p["series"]}
-    assert set(s) == {"home", "solar", "battery", "grid"}
+    assert set(s) == {"home", "solar", "battery", "grid", "soc"}
     assert s["home"]["values"][:2] == [1.0, 0.2]
     assert s["solar"]["values"][:2] == [2.0, 0.0]
     assert s["battery"]["values"][:2] == [-0.5, -1.0]            # charging −
@@ -98,6 +98,19 @@ def test_day_hourly_integrates_the_5min_flows_into_kwh():
     assert s["home"]["values"][2] is None                        # an hour with no samples
     assert s["home"]["derived"] is True
     assert "5-minute" in p["note"]
+
+
+def test_soc_is_a_percent_line_on_its_own_axis_for_the_day_views():
+    # Owner, 2026-11-10: Local and the FranklinWH app chart SoC; Cloud had none.
+    p = ca.build(ca.resolve("day5", date(2026, 11, 5), TODAY), DAY)
+    soc = next(x for x in p["series"] if x["key"] == "soc")
+    assert soc["values"] == [40.0, 42.0, None] and soc["unit"] == "%" and soc["axis"] == "pct"
+    assert soc["evidence"] == "CONFIRMED" and soc["derived"] is False
+    h = ca.build(ca.resolve("dayhour", date(2026, 11, 5), TODAY), DAY)
+    hs = next(x for x in h["series"] if x["key"] == "soc")
+    assert hs["values"][0] == 41.0 and hs["values"][1] is None and hs["unit"] == "%"
+    no_soc = {k: v for k, v in DAY.items() if k != "socArray"}
+    assert "soc" not in {x["key"] for x in ca.build(ca.resolve("day5", date(2026, 11, 5), TODAY), no_soc)["series"]}
 
 
 # ── fetch: the right call, cached ────────────────────────────────────────────

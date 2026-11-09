@@ -3,7 +3,8 @@
 kWh periods (Week, Month, Year, Lifetime) plot the cloud's own totals as bars. Day (5-min)
 plots lines in kW, and Day (hourly) bars in kWh, both made from the 5-minute directional
 flows, so those series are marked derived. Each series carries the weakest evidence rating
-of the fields it uses (franklinwh_cloud.const.energy_fields). Signs: battery discharge +,
+of the fields it uses (franklinwh_cloud.const.energy_fields). The day views also carry
+SoC (socArray, %; the hourly view its mean), on its own axis. Signs: battery discharge +,
 charge −; grid import +, export −. No data stays null, never 0.
 """
 from __future__ import annotations
@@ -19,7 +20,8 @@ SAMPLES_PER_HOUR = 12
 LABELS = {"home": "Home load", "solar": "Solar", "generator": "Generator",
           "battery": "Battery", "battery_discharge": "Battery discharged",
           "battery_charge": "Battery charged", "grid": "Grid",
-          "grid_import": "Grid imported", "grid_export": "Grid exported"}
+          "grid_import": "Grid imported", "grid_export": "Grid exported",
+          "soc": "State of charge"}
 
 #: kWh totals per bucket (getFhpElectricData): key → (API array, sign).
 _TOTALS = (("home", "kwhLoadArray", 1), ("solar", "kwhSuArray", 1),
@@ -80,6 +82,11 @@ def _present(result: dict, parts) -> list[str]:
     return [a for a, _ in parts if isinstance(result.get(a), list)]
 
 
+def _soc(values, derived) -> dict:
+    """SoC in %, drawn on its own 0-100 axis (not in the kW or kWh sums)."""
+    return {**_series("soc", values, ["socArray"], derived), "unit": "%", "axis": "pct"}
+
+
 def build(period: Period, result: dict | None) -> dict:
     """The payload the panel draws for ``period`` from the library's reply ``result``."""
     result = result or {}
@@ -92,6 +99,9 @@ def build(period: Period, result: dict | None) -> dict:
     if period.name == "day5":
         series = [_series(k, [_combine(result, parts, i) for i in range(len(labels))],
                           _present(result, parts), True) for k, parts in _LINES.items()]
+        if isinstance(result.get("socArray"), list):
+            soc = result["socArray"]
+            series.append(_soc([soc[i] if i < len(soc) else None for i in range(len(labels))], False))
         out.update(chart="line", unit="kW")
     elif period.name == "dayhour":
         hours = [f"{h:02d}:00" for h in range(24)]
@@ -108,6 +118,13 @@ def build(period: Period, result: dict | None) -> dict:
                 vals.append(None if not samples or None in samples
                             else round(sum(samples) / SAMPLES_PER_HOUR, 4))
             series.append(_series(k, vals, _present(result, parts), True))
+        if isinstance(result.get("socArray"), list):
+            soc = result["socArray"]
+            vals = []
+            for h in hours:
+                got = [soc[i] for i in idx[h] if i < len(soc) and soc[i] is not None]
+                vals.append(round(sum(got) / len(got), 1) if got else None)
+            series.append(_soc(vals, True))
         labels = hours if labels else []
         out.update(chart="bars", unit="kWh",
                    note="Hourly kWh added up from the 5-minute power, within about 3% of "

@@ -2,8 +2,9 @@
 
 Needs Playwright with a Chrome or Chromium; skipped where it isn't installed.
 """
+import re
 import threading
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -12,6 +13,7 @@ sync_api = pytest.importorskip("playwright.sync_api")
 from franklinwh_ha_cloud_analytics.demo import serve  # noqa: E402
 
 TODAY = date(2026, 11, 9)
+NOON = datetime(2026, 11, 9, 12, 0)
 
 
 @pytest.fixture(scope="module")
@@ -39,6 +41,7 @@ def browser():
 @pytest.fixture
 def page(browser, base):
     ctx = browser.new_context(viewport={"width": 1100, "height": 800})
+    ctx.clock.set_system_time(NOON)                # the browser's today is the demo's TODAY
     pg = ctx.new_page()
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
@@ -105,6 +108,7 @@ def test_a_generator_that_never_ran_is_not_in_the_legend(page):
 
 def test_phone_width_has_no_horizontal_scroll(browser, base):
     ctx = browser.new_context(viewport={"width": 375, "height": 740})
+    ctx.clock.set_system_time(NOON)                # the browser's today is the demo's TODAY
     pg = ctx.new_page()
     pg.goto(base + "/")
     pg.wait_for_selector(".fwhca-chart svg")
@@ -114,6 +118,7 @@ def test_phone_width_has_no_horizontal_scroll(browser, base):
 
 def test_period_is_one_dropdown_so_the_bar_is_one_line_on_a_phone(browser, base):
     ctx = browser.new_context(viewport={"width": 375, "height": 740})
+    ctx.clock.set_system_time(NOON)                # the browser's today is the demo's TODAY
     pg = ctx.new_page()
     pg.goto(base + "/")
     pg.wait_for_selector(".fwhca-chart svg")
@@ -213,10 +218,27 @@ def test_tapping_the_chart_shows_every_value_at_that_time(page):
     assert "Solar" not in tip.inner_text()
 
 
+def test_soc_is_drawn_on_a_percent_axis_and_read_out_in_percent(page):
+    # Owner, 2026-11-10: SoC as Local shows it, right-hand 0-100 % axis.
+    assert page.locator(".fwhca-line.c-soc").count() == 1
+    assert page.locator(".fwhca-key[data-key=soc]").count() == 1
+    assert "%" in [t.strip() for t in page.locator("svg text.fwhca-pct").all_text_contents()]
+    box = page.locator(".fwhca-chart svg").bounding_box()
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    assert re.search(r"State of charge: \d+(\.\d+)? %", page.locator(".fwhca-tip").inner_text())
+    page.select_option(".fwhca-period", "dayhour")                 # bars, SoC still a line
+    page.wait_for_selector(".fwhca-bar-r")
+    assert page.locator(".fwhca-line.c-soc").count() == 1
+    page.select_option(".fwhca-period", "week")                    # the cloud's totals have none
+    page.wait_for_selector(".fwhca-bar-r")
+    assert page.locator(".fwhca-key[data-key=soc]").count() == 0
+
+
 @pytest.mark.parametrize("locale,axis,status", [("en-AU", "1 Nov", "1 Nov 2026"), ("en-US", "Nov 1", "Nov 1, 2026")])
 def test_dates_follow_the_browsers_own_format(browser, base, locale, axis, status):
     # Owner, 2026-11-09: no US mm-dd on an AU browser; dates come from the browser's locale.
     ctx = browser.new_context(locale=locale, viewport={"width": 1100, "height": 800})
+    ctx.clock.set_system_time(NOON)                # the browser's today is the demo's TODAY
     pg = ctx.new_page()
     pg.goto(base + "/")
     pg.wait_for_selector(".fwhca-chart svg")
