@@ -89,6 +89,17 @@ def test_the_day_views_offer_each_5_minute_flow():
     assert hs["grid_to_battery"]["values"][0] == pytest.approx(1.0 / 12, abs=1e-4)  # kWh in the hour
 
 
+def test_the_periods_flows_come_from_the_clouds_own_breakdown():
+    # #543: the Sankey's arcs for the period, metered by the cloud, in kWh.
+    p = ca.build(ca.resolve("month", date(2026, 11, 1), TODAY), MONTH_X)
+    assert p["flows"]["solar_to_home"] == 15.0 and p["flows"]["solar_to_battery"] == 9.0
+    assert p["flows"]["solar_to_grid"] == 6.0 and "grid_to_home" not in p["flows"]
+    d = ca.build(ca.resolve("day5", date(2026, 11, 5), TODAY), DAY)
+    assert d["flows"]["grid_to_battery"] == pytest.approx(1.0 / 12, abs=1e-4)    # 5 minutes at 1 kW
+    assert d["flows"]["solar_to_home"] == pytest.approx(1.0 / 12, abs=1e-4)      # a null sample adds nothing
+    assert ca.build(ca.resolve("month", date(2026, 11, 1), TODAY), MONTH)["flows"] is None
+
+
 def test_a_period_with_no_data_says_empty():
     p = ca.build(ca.resolve("year", date(2027, 1, 1), date(2027, 1, 1)), {})
     assert p["empty"] is True and p["labels"] == []

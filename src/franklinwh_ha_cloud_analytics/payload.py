@@ -65,6 +65,27 @@ LABELS.update({k: _FIELD[a].description for k, a, _ in _EXTRA_TOTALS})
 LABELS.update({k: _FIELD[a].description for k, a in _EXTRA_FLOWS})
 
 
+#: The period's arcs for a Sankey (#543), keyed as the bridges' energy_flow: the cloud's
+#: own breakdown for the kWh periods, the 5-minute flows x 5/60 h for a day.
+_FLOW_TOTALS = {"kwhSolarLoadArray": "solar_to_home", "kwhGridLoadArray": "grid_to_home",
+                "kwhFhpLoadArray": "battery_to_home", "kwhGenLoadArray": "generator_to_home",
+                "soChBatArray": "solar_to_battery", "gridChBatArray": "grid_to_battery",
+                "genChBatArray": "generator_to_battery", "soOutGridArray": "solar_to_grid",
+                "batOutGridArray": "battery_to_grid"}
+
+
+def _flows(result: dict, day: bool) -> dict | None:
+    """kWh per arc over the whole period; None when the reply has no breakdown at all."""
+    names = {api: k for k, api in _EXTRA_FLOWS} if day else _FLOW_TOTALS
+    out = {}
+    for api, key in names.items():
+        arr = result.get(api)
+        if isinstance(arr, list):
+            total = sum(v for v in arr if v is not None)
+            out[key] = round(total / SAMPLES_PER_HOUR if day else total, 4)
+    return out or None
+
+
 def _weakest(apis) -> str:
     levels = [_EVIDENCE.get(a, "INFERRED") for a in apis]
     return max(levels, key=_RANK.__getitem__) if levels else "INFERRED"
@@ -177,5 +198,6 @@ def build(period: Period, result: dict | None) -> dict:
     out["series"] = series
     # every array the cloud returned, for the JSON export: fields empty here have no chip
     out["raw"] = {k: v for k, v in result.items() if isinstance(v, list) and k != "deviceTimeArray"}
+    out["flows"] = _flows(result, period.type is None)
     out["empty"] = not any(v is not None for s in series for v in s["values"])
     return out

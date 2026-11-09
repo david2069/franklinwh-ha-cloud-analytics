@@ -81,7 +81,9 @@ INFERRED ones are labelled. Both Day views also draw the battery's state of char
 Lifetime totals have no SoC. The cloud's other fields with data for the period (home from
 solar, grid and battery; battery charged from solar and grid; export from solar and battery;
 the 5-minute flows on a day) get chips that start off; fields with no data get none, but the
-payload's `raw` and the JSON export keep every array the cloud returned. No data stays null,
+payload's `raw` and the JSON export keep every array the cloud returned. The payload's
+`flows` is the period's kWh per arc (solar → home, battery → grid, …) for a Sankey, from the
+cloud's own breakdown (a day: the 5-minute flows). No data stays null,
 never 0. Signs: battery discharge +,
 charge −; grid import +, export −.
 
