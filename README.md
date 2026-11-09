@@ -50,7 +50,7 @@ then:
 
 `mount()` returns `{reload(), exportData("csv" | "json"), setPeriod(p), period()}`. A host with
 one period picker for its local and cloud views passes `{periodPicker: false, period: p}`,
-calls `setPeriod(p)` from its picker and remembers the period itself; the panel then draws
+calls `setPeriod(p)` (or `setPeriod(p, date)` to move the day in the same read) from its picker and remembers the period itself; the panel then draws
 no picker. `FWHCloudAnalytics.PERIODS` lists the periods as `[value, label]`. The host puts the export buttons
 where its own analytics has them; `exportData` downloads the shown period
 (`fwh-cloud-<period>-<date>.csv`), every series the cloud returned, empty where it has none.
