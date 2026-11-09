@@ -16,7 +16,8 @@
  * stacked} with setStacked(), and {navControl: false, date} with setDate() / date(), hand
  * the Stack toggle and the date stepping to the host as well. {refreshControl: false} drops
  * the ↻ (the host's own Refresh calls reload()), and {statusBelow: true} puts the status line
- * under the chart.
+ * under the chart. {socAxis: "always"} keeps the SoC % axis (and so the plot's width) for the
+ * periods with no SoC.
  */
 (function () {
   "use strict";
@@ -45,7 +46,7 @@
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
                               periodPicker: true, period: null, height: null, styleControl: true, style: null,
                               stackControl: true, stacked: false, navControl: true, date: null,
-                              refreshControl: true, statusBelow: false }, options || {});
+                              refreshControl: true, statusBelow: false, socAxis: "auto" }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: o.date || localToday(), data: null, busy: false,
                  stacked: o.stackControl ? store.get(KEY_STACK) === "1" : !!o.stacked, detailsOpen: false,
                  style: o.styleControl ? (STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null)
@@ -200,7 +201,7 @@
       const P = shown(d).filter((s) => s.axis === "pct"),
             S = shown(d).filter((s) => s.axis !== "pct" && !(s.extra && st.stacked && style(d) === "bars")),
             n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
-            H = o.height || (W < 520 ? 220 : 260), L = 52, R = P.length ? 52 : 8, T = 16, B = 28;
+            H = o.height || (W < 520 ? 220 : 260), soc = P.length || o.socAxis === "always", L = 52, R = soc ? 52 : 8, T = 16, B = 28;
       const sty = style(d), stack = st.stacked && sty === "bars";
       // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
       // it is drawn below (its tooltip keeps the real value).
@@ -224,7 +225,7 @@
       }
       const yp = (v) => T + (100 - v) / 100 * (H - T - B);
       // SoC: its own axis on the right in tens (twenties when short), titled, as the bridges draw it
-      if (P.length) {
+      if (soc) {
         const ps = H - T - B >= 250 ? 10 : 20;
         for (let v = 0; v <= 100; v += ps) g += '<text class="fwhca-ax fwhca-pct" x="' + (W - R + 6) + '" y="' + (yp(v) + 4) + '">' + v + "</text>";
         g += '<text class="fwhca-ax fwhca-pct" transform="translate(' + (W - 8) + " " + ((T + H - B) / 2) + ') rotate(90)" text-anchor="middle">SoC %</text>';

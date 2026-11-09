@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.19] — 2026-11-10
+
+### Added
+- **`socAxis: "always"`** keeps the SoC % axis on the right for the periods with no SoC
+  (Week to Lifetime), so the plot is as wide as a host's own chart that always has it.
+
 ## [0.1.18] — 2026-11-10
 
 ### Added
