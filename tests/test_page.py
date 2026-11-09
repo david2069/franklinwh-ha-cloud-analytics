@@ -438,3 +438,21 @@ def test_a_host_can_open_the_readout_at_a_time(page):
     page.wait_for_function("document.querySelector('.fwhca-tip').textContent.includes('15:00')")
     page.evaluate("ca.showAt(null)")
     assert tip.is_hidden()
+
+
+def test_a_host_can_show_a_custom_range(page):
+    # Owner, 2026-11-10: a From-To date and time range, any length, Local and Cloud.
+    page.evaluate("ca.setRange('2026-11-05T22:00', '2026-11-06T02:00')")   # 5-minute power
+    page.wait_for_function("document.querySelector('.fwhca-status').textContent.includes('22:00')")
+    assert page.evaluate("ca.period()") == "custom"
+    assert page.evaluate("ca.range().to") == "2026-11-06T02:00"
+    ticks = page.locator("svg text.fwhca-ax").all_text_contents()
+    assert any("6 Nov" in t or "Nov 6" in t for t in ticks)                 # the date where the day changes
+    box = page.locator(".fwhca-chart svg").bounding_box()
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    assert re.search(r"(Thu|Fri)", page.locator(".fwhca-tip").inner_text())
+    page.evaluate("ca.setRange('2026-09-20T00:00', '2026-11-03T00:00')")   # daily kWh bars
+    page.wait_for_selector(".fwhca-bar-r")
+    page.evaluate("ca.setPeriod('week')")                                 # back to a period
+    page.wait_for_function("!document.querySelector('.fwhca-status').textContent.includes('–')")   # no range
+    assert page.evaluate("ca.period()") == "week" and page.evaluate("ca.range()") is None

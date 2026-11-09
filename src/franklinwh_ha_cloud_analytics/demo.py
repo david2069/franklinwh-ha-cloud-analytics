@@ -6,14 +6,15 @@ No cloud call is made: the endpoint builds payloads from the shapes the library 
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import build, resolve, static_dir
+from . import build, fetch_range, resolve, static_dir
 
 PAGE = """<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -79,6 +80,30 @@ def payload(period: str, on: date, today: date) -> dict:
     return build(p, _buckets(labels, today))
 
 
+class _Client:
+    """The library's two calls over the made-up data, for a custom range."""
+    def __init__(self, today: date):
+        self.today = today
+
+    async def get_power_by_day(self, day: str) -> dict:
+        on = date.fromisoformat(day)
+        return _day(on) if on <= self.today else {}
+
+    async def get_power_details(self, type: int, on: str) -> dict:
+        d = date.fromisoformat(on)
+        if type == 3:
+            nxt = date(d.year + d.month // 12, d.month % 12 + 1, 1)
+            labels = [(d + timedelta(days=i)).isoformat() for i in range((nxt - d).days)]
+        else:
+            labels = [f"{d.year}-{m:02d}" for m in range(1, 13)]
+        return _buckets(labels, self.today)
+
+
+def custom(start: str, end: str, today: date) -> dict:
+    return asyncio.run(fetch_range(_Client(today), datetime.fromisoformat(start),
+                                   datetime.fromisoformat(end), today=today))
+
+
 class Handler(BaseHTTPRequestHandler):
     today = date.today()
 
@@ -98,9 +123,12 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/cloud":
             q = {k: v[0] for k, v in parse_qs(u.query).items()}
             try:
-                body = payload(q.get("period", "day5"),
-                               date.fromisoformat(q.get("date") or self.today.isoformat()),
-                               self.today)
+                if q.get("period") == "custom":
+                    body = custom(q.get("from", ""), q.get("to", ""), self.today)
+                else:
+                    body = payload(q.get("period", "day5"),
+                                   date.fromisoformat(q.get("date") or self.today.isoformat()),
+                                   self.today)
                 return self._send(json.dumps(body).encode(), "application/json")
             except ValueError as e:
                 return self._send(json.dumps({"error": str(e)}).encode(), "application/json", 400)

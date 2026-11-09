@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.1.21] — 2026-11-10
+
+### Added
+- **A custom From-To range**: `fetch_range(client, start, end, …)` joins and trims the day,
+  month or year replies a range needs into one payload (`period: "custom"`): 5-minute power
+  up to 2 days, hourly kWh up to 31 days, daily up to a year, monthly beyond. The panel's
+  `setRange(from, to)` draws it, with the date on the axis where the day changes; the demo
+  serves it. `build(…, dated_hours=True)` keeps the date in hourly labels.
+
 ## [0.1.20] — 2026-11-10
 
 ### Added

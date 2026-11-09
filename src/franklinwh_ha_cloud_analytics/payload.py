@@ -128,8 +128,10 @@ def _soc(values, derived) -> dict:
     return {**_series("soc", values, ["socArray"], derived), "unit": "%", "axis": "pct"}
 
 
-def build(period: Period, result: dict | None) -> dict:
-    """The payload the panel draws for ``period`` from the library's reply ``result``."""
+def build(period: Period, result: dict | None, *, dated_hours: bool = False) -> dict:
+    """The payload the panel draws for ``period`` from the library's reply ``result``.
+    ``dated_hours``: the hourly labels carry their date ("2026-11-05 14:00"), for a
+    custom range that spans days."""
     result = result or {}
     labels = list(result.get("deviceTimeArray") or [])
     out = {"source": "cloud", "period": period.name, "date": period.start.isoformat(),
@@ -149,10 +151,15 @@ def build(period: Period, result: dict | None) -> dict:
             series.append(_soc([soc[i] if i < len(soc) else None for i in range(len(labels))], False))
         out.update(chart="line", unit="kW")
     elif period.name == "dayhour":
-        hours = [f"{h:02d}:00" for h in range(24)]
+        if dated_hours:     # every hour the labels reach, in order, with its date
+            hour_of = lambda t: str(t)[:13] + ":00"     # noqa: E731
+            hours = list(dict.fromkeys(hour_of(t) for t in labels))
+        else:
+            hour_of = lambda t: str(t).split(" ")[-1][:2] + ":00"   # noqa: E731
+            hours = [f"{h:02d}:00" for h in range(24)]
         idx: dict[str, list[int]] = {h: [] for h in hours}
         for i, t in enumerate(labels):
-            hh = str(t).split(" ")[-1][:2] + ":00"
+            hh = hour_of(t)
             if hh in idx:
                 idx[hh].append(i)
         series = []

@@ -89,6 +89,24 @@ cloud's own breakdown (a day: the 5-minute flows). No data stays null,
 never 0. Signs: battery discharge +,
 charge −; grid import +, export −.
 
+### A custom range
+
+`ca.fetch_range(client, start, end, today=site_today, cache=cache, key=gateway_id)` takes
+site-local datetimes (the end not included) and reads the pieces the range needs, then joins
+and trims them into one payload (`period: "custom"`, with `res`, `from` and `to`):
+
+| Range | Pieces read | Chart |
+|---|---|---|
+| up to 2 days | `get_power_by_day` per day | lines, kW (5-minute) |
+| up to 31 days | `get_power_by_day` per day, added up per hour | bars, kWh per hour |
+| up to a year | `get_power_details(3, …)` per month | bars, kWh per day |
+| longer | `get_power_details(4, …)` per year | bars, kWh per month |
+
+Days after today are not asked for; each piece is cached as the periods are, so a long
+hourly range costs one cloud read per day the first time only. In the page, a host calls
+`setRange("2026-11-05T22:00", "2026-11-06T02:00")` (the endpoint gets
+`?period=custom&from=&to=`), and `setPeriod()` goes back to a period.
+
 Caching: a period that today falls in is kept for 5 minutes, a finished one for 6 hours.
 The cloud's rate limit is per account, shared with the FranklinWH app.
 
