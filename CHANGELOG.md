@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.1.16] — 2026-11-10
+
+### Changed
+- **The chart looks like the bridges' own** (owner): the unit (kW, kWh) is a rotated title
+  on the left; SoC has its own axis on the right in tens (twenties on a short chart),
+  titled **SoC %**, in its colour, and its line is solid; labelled times get faint vertical
+  grid lines. `--ca-grid` sets the grid lines' colour.
+- **The Details menu scrolls** when its list is taller than the screen allows.
+
 ## [0.1.15] — 2026-11-10
 
 ### Fixed

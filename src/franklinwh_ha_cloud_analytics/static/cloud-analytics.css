@@ -4,7 +4,7 @@
   --ca-accent: #2f9e5d; --ca-crit: #d1453b; --ca-menu-bg: #fff;
   --ca-home: #5b8def; --ca-solar: #e8b100; --ca-generator: #9b6bd6;
   --ca-battery: #2fae6b; --ca-battery_discharge: #2fae6b; --ca-battery_charge: #7fd1a3;
-  --ca-grid: #8a94a3; --ca-grid_import: #d1453b; --ca-grid_export: #8a94a3; --ca-soc: #14b8a6; }
+  --ca-grid: #8a94a3; --ca-grid_import: #d1453b; --ca-grid_export: #8a94a3; --ca-soc: #34d399; }
 .fwhca-bar{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .fwhca-nav{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .fwhca button, .fwhca input, .fwhca select{ font: inherit; font-size: .82rem; color: inherit; background: transparent; border: 1px solid var(--ca-line); border-radius: 8px; padding: 5px 10px; min-height: 34px; }
@@ -23,7 +23,7 @@
 .fwhca-status.fwhca-err{ color: var(--ca-crit); }
 .fwhca-chart svg{ width: 100%; height: auto; display: block; }
 .fwhca-empty{ padding: 40px 0; text-align: center; color: var(--ca-muted); }
-.fwhca-grid{ stroke: var(--ca-line); stroke-width: 1; }
+.fwhca-grid{ stroke: var(--ca-grid, var(--ca-line)); stroke-width: 1; }
 .fwhca-grid.zero{ stroke: var(--ca-muted); }
 .fwhca-ax{ fill: var(--ca-muted); font-size: 11px; }
 .fwhca-line{ fill: none; stroke-width: 1.6; }
@@ -35,7 +35,7 @@
 .fwhca-key i, .fwhca-menu i{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .fwhca .fwhca-more{ color: inherit; background: transparent; border: 1px solid var(--ca-line); }
 .fwhca-details{ position: relative; display: inline-flex; }
-.fwhca-menu{ position: absolute; z-index: 20; top: 100%; left: 0; margin-top: 4px; min-width: 240px; max-width: calc(100vw - 16px); display: flex; flex-direction: column; gap: 2px;
+.fwhca-menu{ position: absolute; z-index: 20; top: 100%; left: 0; margin-top: 4px; min-width: 240px; max-width: calc(100vw - 16px); max-height: min(320px, 60vh); overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
   padding: 6px; border: 1px solid var(--ca-line); border-radius: 10px; background: var(--ca-menu-bg); color: inherit; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .fwhca-menu label{ display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: .8rem; cursor: pointer; }
 .fwhca-menu label:hover{ background: color-mix(in srgb, currentColor 8%, transparent); }
@@ -44,7 +44,8 @@
 .fwhca abbr{ text-decoration: none; color: var(--ca-muted); }
 .c-home{ --c: var(--ca-home); } .c-solar{ --c: var(--ca-solar); } .c-generator{ --c: var(--ca-generator); }
 .c-battery{ --c: var(--ca-battery); } .c-battery_discharge{ --c: var(--ca-battery_discharge); } .c-battery_charge{ --c: var(--ca-battery_charge); }
-.c-soc{ --c: var(--ca-soc); } .fwhca-line.c-soc{ stroke-dasharray: 4 3; }
+.c-soc{ --c: var(--ca-soc); }
+.fwhca-pct{ fill: var(--ca-soc); }
 .c-grid{ --c: var(--ca-grid); } .c-grid_import{ --c: var(--ca-grid_import); } .c-grid_export{ --c: var(--ca-grid_export); }
 /* The cloud's other fields (#13) take their source's colour, dashed or lighter. */
 .c-solar_to_home, .c-solar_to_grid, .c-solar_to_battery, .c-home_from_solar, .c-battery_from_solar, .c-grid_export_from_solar{ --c: var(--ca-solar); }

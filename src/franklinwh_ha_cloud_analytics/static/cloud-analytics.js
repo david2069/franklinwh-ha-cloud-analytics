@@ -194,7 +194,7 @@
       const P = shown(d).filter((s) => s.axis === "pct"),
             S = shown(d).filter((s) => s.axis !== "pct" && !(s.extra && st.stacked && style(d) === "bars")),
             n = d.labels.length, W = Math.max(300, Math.round($(".fwhca-chart").clientWidth || 720)),
-            H = o.height || (W < 520 ? 220 : 260), L = 44, R = P.length ? 36 : 8, T = 24, B = 28;
+            H = o.height || (W < 520 ? 220 : 260), L = 52, R = P.length ? 52 : 8, T = 16, B = 28;
       const sty = style(d), stack = st.stacked && sty === "bars";
       // Stacked is an energy balance: sources above zero, uses below. Home load is a use, so
       // it is drawn below (its tooltip keeps the real value).
@@ -217,12 +217,18 @@
              '<text class="fwhca-ax" x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + +v.toFixed(2) + "</text>";
       }
       const yp = (v) => T + (100 - v) / 100 * (H - T - B);
+      // SoC: its own axis on the right in tens (twenties when short), titled, as the bridges draw it
       if (P.length) {
-        [0, 50, 100].forEach((v) => { g += '<text class="fwhca-ax fwhca-pct" x="' + (W - R + 6) + '" y="' + (yp(v) + 4) + '">' + v + "</text>"; });
-        g += '<text class="fwhca-ax fwhca-pct" x="' + (W - 4) + '" y="12" text-anchor="end">%</text>';
+        const ps = H - T - B >= 250 ? 10 : 20;
+        for (let v = 0; v <= 100; v += ps) g += '<text class="fwhca-ax fwhca-pct" x="' + (W - R + 6) + '" y="' + (yp(v) + 4) + '">' + v + "</text>";
+        g += '<text class="fwhca-ax fwhca-pct" transform="translate(' + (W - 8) + " " + ((T + H - B) / 2) + ') rotate(90)" text-anchor="middle">SoC %</text>';
       }
       const every = Math.ceil(n / (W < 520 ? 4 : 8));
-      d.labels.forEach((t, i) => { if (i % every === 0) g += '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(short(t, d.period)) + "</text>"; });
+      d.labels.forEach((t, i) => {
+        if (i % every) return;
+        g += '<line class="fwhca-grid fwhca-vgrid" x1="' + x(i) + '" x2="' + x(i) + '" y1="' + T + '" y2="' + (H - B) + '"/>' +
+             '<text class="fwhca-ax" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(short(t, d.period)) + "</text>";
+      });
       geo = { W, L, cw: (W - L - R) / Math.max(n, 1), T, H: H - B, n };
       if (sty !== "bars") {
         S.forEach((s) => {
@@ -267,7 +273,7 @@
         g += '<path class="fwhca-line c-' + esc(s.key) + '" d="' + path + '"><title>' + esc(s.label) + "</title></path>";
       });
       return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Cloud energy chart in ' + esc(d.unit) + '">' +
-             '<text class="fwhca-ax" x="4" y="12">' + esc(d.unit) + "</text>" + g +
+             '<text class="fwhca-ax fwhca-unit" transform="translate(12 ' + ((T + H - B) / 2) + ') rotate(-90)" text-anchor="middle">' + esc(d.unit) + "</text>" + g +
              '<line class="fwhca-guide" y1="' + T + '" y2="' + (H - B) + '" x1="-9" x2="-9"/></svg>';
     }
 
