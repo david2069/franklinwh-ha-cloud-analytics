@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.1.11] — 2026-11-10
+
+### Added
+- **Host-owned chart style:** `mount(el, {styleControl: false, style: "bars"})` draws no
+  Line | Area | Bars of its own; the host calls `setStyle("line" | "area" | "bars" | null)`
+  (null: lines for a day, bars otherwise) and remembers the choice itself. `style()` returns
+  the style drawn.
+
 ## [0.1.10] — 2026-11-10
 
 ### Added

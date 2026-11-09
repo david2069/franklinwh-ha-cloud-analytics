@@ -10,7 +10,9 @@
  * A host with its own period picker (one picker for its local and cloud views) passes
  * {periodPicker: false, period: "week"} and calls setPeriod() from it; the panel then draws
  * no picker of its own and leaves remembering the period to the host. {height: 380} draws
- * the chart that many pixels tall at any width, to match the host's own chart.
+ * the chart that many pixels tall at any width, to match the host's own chart. A host with its
+ * own Line | Area | Bars passes {styleControl: false, style: "bars"} and calls setStyle()
+ * (null = lines for a day, bars otherwise); style() is the one drawn.
  */
 (function () {
   "use strict";
@@ -37,9 +39,11 @@
 
   function mount(el, options) {
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
-                              periodPicker: true, period: null, height: null }, options || {});
+                              periodPicker: true, period: null, height: null, styleControl: true, style: null }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: localToday(), data: null, busy: false,
-                 stacked: store.get(KEY_STACK) === "1", style: STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null,
+                 stacked: store.get(KEY_STACK) === "1",
+                 style: o.styleControl ? (STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null)
+                                       : (STYLES.includes(o.style) ? o.style : null),
                  hidden: list(KEY_HIDDEN), extras: list(KEY_EXTRAS) };
     if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
     el.classList.add("fwhca");
@@ -86,6 +90,8 @@
       if (o.periodPicker) store.set(KEY, p);
       load();
     }
+    // A host's own Line | Area | Bars (styleControl: false); null is automatic. Not stored.
+    function setStyle(s) { st.style = STYLES.includes(s) ? s : null; render(); }
     dateIn.addEventListener("change", () => { if (dateIn.value) { st.date = dateIn.value; load(); } });
 
     async function load(refresh) {
@@ -112,7 +118,7 @@
       $("[data-step=next]").disabled = !d || !!d.error || !d.nav || !d.nav.next;
       $("[data-today]").disabled = !d || !!d.error || !!d.current;
       const sty = d && !d.error ? style(d) : null;
-      $(".fwhca-seg").hidden = !sty;
+      $(".fwhca-seg").hidden = !sty || !o.styleControl;
       STYLES.forEach((k) => $("[data-style=" + k + "]").setAttribute("aria-pressed", String(sty === k)));
       const stackBtn = $("[data-stack]");
       stackBtn.hidden = sty !== "bars";
@@ -295,7 +301,8 @@
       return true;
     }
 
-    return { reload: () => load(true), exportData, setPeriod, period: () => st.period };
+    return { reload: () => load(true), exportData, setPeriod, period: () => st.period, setStyle,
+             style: () => (st.data && !st.data.error ? style(st.data) : st.style) };
   }
 
   function nice(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const m = x / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
