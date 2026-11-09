@@ -411,3 +411,15 @@ def test_a_host_can_drop_the_refresh_button_and_put_the_status_under_the_chart(p
     chart = page.locator("#host .fwhca-chart svg").bounding_box()
     legend = page.locator("#host .fwhca-legend").bounding_box()
     assert chart["y"] + chart["height"] <= status["y"] <= legend["y"]
+
+
+def test_a_host_can_keep_the_soc_axis_for_every_period(page):
+    # The cloud's Week to Lifetime have no SoC; a host whose own chart always has the axis
+    # keeps the same plot width.
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d);
+        FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', period: 'month', socAxis: 'always'}); }""")
+    page.wait_for_selector("#host .fwhca-bar-r")
+    pct = [t.strip() for t in page.locator("#host svg text.fwhca-pct").all_text_contents()]
+    assert "SoC %" in pct and "100" in pct
+    assert page.locator("#host .fwhca-line.c-soc").count() == 0
