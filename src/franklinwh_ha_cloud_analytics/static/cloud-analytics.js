@@ -238,7 +238,34 @@
       if (Math.abs(w - lastW) > 8) { lastW = w; if (!st.busy) render(); }
     }).observe(el);
     load();
-    return { reload: () => load(true) };
+    // The shown period as a file: every series the cloud returned (chips only hide them on
+    // the chart), the labels as the cloud gave them, null left empty.
+    function exportData(fmt) {
+      const d = st.data;
+      if (!d || d.error || st.busy) return false;
+      const name = "fwh-cloud-" + d.period + (d.period === "lifetime" ? "" : "-" + d.date) + "." + fmt;
+      let body, type;
+      if (fmt === "json") {
+        body = JSON.stringify({ source: d.source, period: d.period, date: d.date, unit: d.unit, note: d.note,
+          labels: d.labels, series: d.series, fetched_at: d.fetched_at || null }, null, 2);
+        type = "application/json";
+      } else {
+        const cell = (v) => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+        const head = [d.period === "day5" || d.period === "dayhour" ? "time" : "date"]
+          .concat(d.series.map((s) => s.label + " (" + d.unit + ")"));
+        body = [head].concat(d.labels.map((t, i) => [t].concat(d.series.map((s) => s.values[i]))))
+          .map((r) => r.map(cell).join(",")).join("\n") + "\n";
+        type = "text/csv";
+      }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([body], { type: type + ";charset=utf-8" }));
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      return true;
+    }
+
+    return { reload: () => load(true), exportData };
   }
 
   function nice(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const m = x / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }

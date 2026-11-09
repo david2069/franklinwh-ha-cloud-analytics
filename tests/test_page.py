@@ -227,3 +227,23 @@ def test_dates_follow_the_browsers_own_format(browser, base, locale, axis, statu
     assert axis in ticks and not any(t.startswith("11-") for t in ticks)
     assert status in pg.locator(".fwhca-status").inner_text()
     ctx.close()
+
+
+def test_exports_the_shown_period_as_csv_and_json(page, tmp_path):
+    # Owner, 2026-11-09: CSV and JSON export like the bridge's Local view.
+    page.select_option(".fwhca-period", "month")
+    page.wait_for_function("document.querySelector('input[type=date]').value === '2026-11-01' && !document.querySelector('.fwhca-status').textContent.includes('Loading')")
+    with page.expect_download() as dl:
+        page.click("text=Export CSV")
+    d = dl.value
+    assert d.suggested_filename == "fwh-cloud-month-2026-11-01.csv"
+    rows = open(d.path(), encoding="utf-8").read().splitlines()
+    assert rows[0].startswith("date,Home load (kWh),Solar (kWh)")
+    assert rows[1].startswith("2026-11-01,") and len(rows) == 31        # header + every day
+    page.click(".fwhca-key[data-key=solar]")                             # hidden on the chart, still exported
+    with page.expect_download() as dl:
+        page.click("text=JSON")
+    import json
+    body = json.load(open(dl.value.path(), encoding="utf-8"))
+    assert dl.value.suggested_filename == "fwh-cloud-month-2026-11-01.json"
+    assert body["period"] == "month" and body["unit"] == "kWh" and "solar" in [s["key"] for s in body["series"]]

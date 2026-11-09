@@ -20,8 +20,10 @@ PAGE = """<!doctype html><html><head><meta charset="utf-8">
 <title>Cloud analytics demo</title><link rel="stylesheet" href="cloud-analytics/cloud-analytics.css">
 <style>body{font-family:system-ui,sans-serif;margin:16px;background:#fff;color:#18202b}
 @media (prefers-color-scheme:dark){body{background:#121924;color:#e4e9f0}}</style></head>
-<body><div id="ca"></div><script src="cloud-analytics/cloud-analytics.js"></script>
-<script>FWHCloudAnalytics.mount(document.getElementById("ca"), {endpoint: "api/cloud"});</script>
+<body><p><button type="button" onclick="ca.exportData('csv')">Export CSV</button>
+<button type="button" onclick="ca.exportData('json')">JSON</button></p>
+<div id="ca"></div><script src="cloud-analytics/cloud-analytics.js"></script>
+<script>const ca = FWHCloudAnalytics.mount(document.getElementById("ca"), {endpoint: "api/cloud"});</script>
 </body></html>"""
 
 
