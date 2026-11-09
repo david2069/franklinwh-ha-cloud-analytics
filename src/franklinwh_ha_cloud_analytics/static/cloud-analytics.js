@@ -55,7 +55,7 @@
                  style: o.styleControl ? (STYLES.includes(store.get(KEY_STYLE)) ? store.get(KEY_STYLE) : null)
                                        : (STYLES.includes(o.style) ? o.style : null),
                  hidden: list(KEY_HIDDEN), extras: list(KEY_EXTRAS) };
-    if (!PERIODS.some((p) => p[0] === st.period)) st.period = "day5";
+    if (!PERIODS.some((p) => p[0] === st.period) && !(st.period === "custom" && st.range)) st.period = "day5";
     el.classList.add("fwhca");
     // the status line (and ↻), above the chart, or under it where a host's own note sits
     const statusbar = '<div class="fwhca-statusbar' + (o.statusBelow ? " fwhca-below" : "") + '"><p class="fwhca-status" aria-live="polite"></p>' +

@@ -105,7 +105,8 @@ and trims them into one payload (`period: "custom"`, with `res`, `from` and `to`
 Days after today are not asked for; each piece is cached as the periods are, so a long
 hourly range costs one cloud read per day the first time only. In the page, a host calls
 `setRange("2026-11-05T22:00", "2026-11-06T02:00")` (the endpoint gets
-`?period=custom&from=&to=`), and `setPeriod()` goes back to a period.
+`?period=custom&from=&to=`), and `setPeriod()` goes back to a period. A host can also mount on a range:
+`{period: "custom", range: {from, to}}`.
 
 Caching: a period that today falls in is kept for 5 minutes, a finished one for 6 hours.
 The cloud's rate limit is per account, shared with the FranklinWH app.

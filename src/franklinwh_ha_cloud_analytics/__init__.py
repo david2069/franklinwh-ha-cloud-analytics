@@ -14,7 +14,7 @@ from .payload import build
 from .periods import PERIODS, Period, resolve
 from .service import Cache, fetch, fetch_range, range_res
 
-__version__ = "0.1.21"
+__version__ = "0.1.22"
 __all__ = ["PERIODS", "Cache", "Period", "build", "fetch", "fetch_range", "range_res", "resolve",
            "static_dir"]
 
