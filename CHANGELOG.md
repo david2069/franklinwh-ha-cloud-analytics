@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.25] — 2026-11-10
+
+### Added
+- **A colour token per detail**: each of the cloud's other fields (Details ▾) reads
+  `--ca-<key>` (`--ca-solar_to_home`, `--ca-home_from_grid`, …), so a host's colour picker
+  can set it; unset, it keeps its source's colour.
+
 ## [0.1.24] — 2026-11-10
 
 ### Added
