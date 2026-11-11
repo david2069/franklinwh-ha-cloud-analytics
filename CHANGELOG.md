@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.26] — 2026-11-12
+
+### Added
+- **`onData`**: a host is handed each loaded period's payload (`null` on an error), so
+  it can show the period's totals under the chart without reading the cloud again.
+
 ## [0.1.25] — 2026-11-10
 
 ### Added

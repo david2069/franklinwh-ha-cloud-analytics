@@ -483,3 +483,14 @@ def test_set_range_can_ask_for_hourly_slots(page):
     page.evaluate("ca.setRange('2026-11-05T06:00', '2026-11-05T10:00', 'hour')")
     page.wait_for_selector(".fwhca-bar-r")
     assert page.evaluate("ca.range().res") == "hour"
+
+
+def test_a_host_is_handed_each_loaded_period(page):
+    # Owner, 2026-11-12: the bridge shows the period's totals under the Cloud chart too,
+    # from the same payload, without reading the cloud a second time.
+    page.evaluate("""() => { const d = document.createElement('div'); d.id = 'host';
+        document.body.appendChild(d); window.got = [];
+        FWHCloudAnalytics.mount(d, {endpoint: 'api/cloud', period: 'month', date: '2026-10-01',
+            onData: (p) => window.got.push(p && p.period)}); }""")
+    page.wait_for_function("window.got.length >= 1")
+    assert page.evaluate("window.got[window.got.length - 1]") == "month"

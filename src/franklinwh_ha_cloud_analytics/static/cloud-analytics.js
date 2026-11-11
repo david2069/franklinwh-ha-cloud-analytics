@@ -48,7 +48,7 @@
     const o = Object.assign({ endpoint: "api/analytics/cloud", params: null, sourceLabel: "the FranklinWH cloud",
                               periodPicker: true, period: null, height: null, styleControl: true, style: null,
                               stackControl: true, stacked: false, navControl: true, date: null,
-                              refreshControl: true, statusBelow: false, socAxis: "auto" }, options || {});
+                              refreshControl: true, statusBelow: false, socAxis: "auto", onData: null }, options || {});
     const st = { period: o.period || store.get(KEY) || "day5", date: o.date || localToday(), data: null, busy: false,
                  range: o.period === "custom" && o.range ? o.range : null,
                  stacked: o.stackControl ? store.get(KEY_STACK) === "1" : !!o.stacked, detailsOpen: false,
@@ -144,6 +144,8 @@
         if (!st.data.error) st.date = st.data.date;
       } catch (e) { st.data = { error: "Could not reach the bridge: " + e.message }; }
       st.busy = false; render(); applyAt();
+      // the host gets each loaded period (null on an error), e.g. for its own totals
+      if (typeof o.onData === "function") { try { o.onData(st.data && !st.data.error ? st.data : null); } catch (e) { /* the host's own */ } }
     }
 
     function render() {
