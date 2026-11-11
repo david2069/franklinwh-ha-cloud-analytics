@@ -55,7 +55,7 @@ no picker. `FWHCloudAnalytics.PERIODS` lists the periods as `[value, label]`. Th
 where its own analytics has them; `exportData` downloads the shown period
 (`fwh-cloud-<period>-<date>.csv`), every series the cloud returned, empty where it has none.
 Likewise `{stackControl: false, stacked}` + `setStacked()` and `{navControl: false, date}` +
-`setDate()` / `date()` hand over the Stack toggle and the date stepping; `{refreshControl: false}` drops the ↻ and `{statusBelow: true}` puts the status line under the chart; `{socAxis: "always"}` keeps the SoC % axis for every period; `showAt("HH:MM")` opens the readout at the nearest slot on the Day views (`showAt(null)` puts it away); each detail's `--ca-<key>` (`--ca-solar_to_home`, …) sets its colour (unset: its source's); `--ca-gridline` sets the grid lines' colour and `--ca-menu-bg` sets
+`setDate()` / `date()` hand over the Stack toggle and the date stepping; `{refreshControl: false}` drops the ↻ and `{statusBelow: true}` puts the status line under the chart; `{socAxis: "always"}` keeps the SoC % axis for every period; `{onData: (payload) => …}` hands the host each loaded period (`null` on an error), so it can show its own totals without a second read; `showAt("HH:MM")` opens the readout at the nearest slot on the Day views (`showAt(null)` puts it away); each detail's `--ca-<key>` (`--ca-solar_to_home`, …) sets its colour (unset: its source's); `--ca-gridline` sets the grid lines' colour and `--ca-menu-bg` sets
 the Details menu's background. A host with its own **Line | Area | Bars** passes `{styleControl: false, style: s}` and calls
 `setStyle(s)` (`null` = automatic); `style()` returns the style drawn.
 `{height: 380}` draws the chart that many pixels tall at any width (default 260, 220 on a
