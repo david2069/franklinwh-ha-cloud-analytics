@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.1.27] — 2026-11-13
+
+### Added
+- **`insights`**: what a period's energy says, how it is trending and what to change for
+  the user's objectives (direct-connect-bridge #588). `summarise(current, previous=,
+  last_year=, history=, site=, objectives=)` returns ratios (self-sufficiency, solar used
+  on site, battery cycles a day), **trends** (each metric per day against the previous
+  period and last year, with runs of rises or falls), **findings**, and **suggestions** for
+  the objectives (lowest bill, most self-sufficiency, backup ready, most export earnings,
+  battery care): an action (mode, reserve, schedule), its numbers, why, and an effect a
+  month marked as an estimate. Fixed rules, no I/O; missing data stays `None`.
+
 ## [0.1.26] — 2026-11-12
 
 ### Added

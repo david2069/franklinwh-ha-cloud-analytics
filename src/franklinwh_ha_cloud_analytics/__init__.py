@@ -10,12 +10,13 @@ from __future__ import annotations
 from importlib import resources
 from pathlib import Path
 
+from . import insights
 from .payload import build
 from .periods import PERIODS, Period, resolve
 from .service import Cache, fetch, fetch_range, range_res
 
-__version__ = "0.1.26"
-__all__ = ["PERIODS", "Cache", "Period", "build", "fetch", "fetch_range", "range_res", "resolve",
+__version__ = "0.1.27"
+__all__ = ["PERIODS", "Cache", "Period", "build", "insights", "fetch", "fetch_range", "range_res", "resolve",
            "static_dir"]
 
 

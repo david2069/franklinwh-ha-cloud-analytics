@@ -20,6 +20,17 @@ two different sources, and the page always says which one it is showing.
 Status: phase 1 (periods, chart payload, panel). The phased plan is in
 [direct-connect-bridge #215](https://github.com/david2069/franklinwh-direct-connect-bridge/issues/215).
 
+## Insights
+
+`ca.insights.summarise(...)` explains a period from its totals (kWh, keyed as in the
+payload, plus `days`) and the site (`mode`, `reserve_pct`, `capacity_kwh`, `solar_kwp`,
+`tariff`): ratios, **trends** against the previous period and last year, **findings**, and
+**suggestions** for the user's objectives (`ca.insights.OBJECTIVES`: lowest bill, most
+self-sufficiency, backup ready, most export earnings, battery care). Each suggestion has an
+`action` (`mode`, `reserve`, `schedule`, `schedules`), its `numbers`, `why`, and an `effect`
+a month marked `estimate`. Plain data in and out, the same for a bridge's Explain dialog, its
+API and an MCP tool; fixed rules, no I/O, nothing applied.
+
 ## How a bridge uses it
 
 The bridge keeps the cloud credentials, its routes and its database. This package makes
